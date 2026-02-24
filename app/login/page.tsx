@@ -53,7 +53,7 @@ export default function Login() {
               <h1 className="text-3xl font-bold text-[#f0d9b5] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider font-permanent">
                 MAGIOS
               </h1>
-              <p className="text-[#8b6f4c] text-sm mt-1">HERMANDAD</p>
+              <p className="text-[#8b6f4c] text-sm mt-1">GUILD</p>
             </div>
 
             {/* Formulario de login */}
