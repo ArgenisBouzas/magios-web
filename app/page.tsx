@@ -45,9 +45,22 @@ export default function Home() {
             <div className="w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-[#8b6f4c] to-[#4a3a28] rounded-full border-4 border-[#c4aa7d] flex items-center justify-center mb-2 sm:mb-4 shadow-2xl">
               <span className="text-3xl sm:text-5xl drop-shadow-lg">⚔️</span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-bold text-[#f0d9b5] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider text-center">
+            {/* <h1 className="text-3xl sm:text-5xl font-bold text-[#f0d9b5] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider text-center">
               MAGIOS GUILD
-            </h1>
+            </h1> */}
+           <Image
+  src="/logo-magios.png"
+  alt="Portal Oscuro"
+  width={200}
+  height={100}
+  className="z-10"
+  sizes="100vw" // 50% del viewport
+  style={{
+    width: '30%',
+    height: 'auto'
+  }}
+  priority
+/>
             <p className="text-sm sm:text-xl text-[#8b6f4c] mt-1 sm:mt-2 text-center px-2">
               • World of Warcraft Classic •
             </p>
