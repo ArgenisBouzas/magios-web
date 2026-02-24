@@ -46,18 +46,17 @@ export default function Login() {
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#c4aa7d]"></div>
 
             {/* Logo o título */}
-          <div className="text-center mb-8">
-          <div className="flex justify-center mb-3">
+          <div className="text-center mb-8 max-w-[750px]">
+            <div className="flex justify-center mb-3 ">
             <Image
-              src="/logo-magios.png"
-              alt="Portal Oscuro"
-              width={400}
-              height={200}
-              className="w-32 sm:w-40 md:w-48 lg:w-56 h-auto object-contain"
-              priority
-            />
-          </div>
-          <p className="text-[#8b6f4c] text-sm mt-2 tracking-wider">✦ GUILD ✦</p>
+  src="/magios.png"
+  alt="Portal Oscuro"
+  width={400}
+  height={200}
+  className="w-full max-w-md h-auto object-contain mx-auto"
+  priority
+/>      </div>
+            <p className="text-[#8b6f4c] text-sm mt-2 tracking-wider">✦ GUILD ✦</p>
         </div>
 
             {/* Formulario de login */}

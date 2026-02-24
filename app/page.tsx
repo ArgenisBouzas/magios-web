@@ -42,9 +42,9 @@ export default function Home() {
   {/* Contenedor flex column para apilar elementos verticalmente */}
   <div className="relative h-full flex flex-col items-center justify-center px-4">
     {/* Imagen con tamaño controlado */}
-    <div className="w-1/2 sm:w-1/3 max-w-[250px]">
+    <div className="w-1/2 sm:w-1/3 max-w-[450px]">
       <Image
-        src="/logo-magios.png"
+        src="/magios.png"
         alt="Portal Oscuro"
         width={400}
         height={200}
