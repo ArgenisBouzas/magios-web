@@ -55,7 +55,7 @@ export default function Home() {
     
     {/* Texto decorativo */}
     <p className="text-sm sm:text-base text-[#8b6f4c] mt-2 text-center px-2 tracking-wider">
-      • World of Warcraft Classic •
+      • Turtle WoW Guild •
     </p>
   </div>
 </header>
