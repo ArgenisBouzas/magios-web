@@ -112,8 +112,8 @@ export default function MiembrosPage() {
             <div className="w-12 h-12 bg-gradient-to-br from-[#8b6f4c] to-[#4a3a28] rounded-full border-2 border-[#c4aa7d] flex items-center justify-center group-hover:scale-110 transition-transform">
               <span className="text-2xl drop-shadow-lg">⚔️</span>
             </div>
-            <h1 className="text-3xl font-bold text-[#f0d9b5] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider">
-              HERMANDAD
+            <h1 className="text-3xl font-bold text-[#f0d9b5] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider font-permanent">
+              MAGIOS
             </h1>
           </Link>
           
