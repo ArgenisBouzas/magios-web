@@ -46,15 +46,19 @@ export default function Login() {
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#c4aa7d]"></div>
 
             {/* Logo o título */}
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-[#8b6f4c] to-[#4a3a28] rounded-full border-4 border-[#c4aa7d] flex items-center justify-center">
-                <span className="text-3xl drop-shadow-lg">⚔️</span>
-              </div>
-              <h1 className="text-3xl font-bold text-[#f0d9b5] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider font-permanent">
-                MAGIOS
-              </h1>
-              <p className="text-[#8b6f4c] text-sm mt-1">GUILD</p>
-            </div>
+          <div className="text-center mb-8">
+          <div className="flex justify-center mb-3">
+            <Image
+              src="/logo-magios.png"
+              alt="Portal Oscuro"
+              width={400}
+              height={200}
+              className="w-32 sm:w-40 md:w-48 lg:w-56 h-auto object-contain"
+              priority
+            />
+          </div>
+          <p className="text-[#8b6f4c] text-sm mt-2 tracking-wider">✦ GUILD ✦</p>
+        </div>
 
             {/* Formulario de login */}
             <form className="space-y-6">
