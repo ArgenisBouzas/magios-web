@@ -134,32 +134,43 @@ export default function NoticiasPage() {
     backgroundRepeat: 'repeat'
   }}></div>
   
-  <div className="relative h-full flex items-center justify-between px-2 sm:px-4 md:px-8">
-    {/* Logo a la izquierda */}
-    <Link href="/" className="flex items-center group">
-      <div className="w-16 sm:w-24 md:w-36 h-auto">
-        <Image
-          src="/magios.png"
-          alt="Portal Oscuro"
-          width={400}
-          height={200}
-          className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-300"
-          priority
-        />
-      </div>
-    </Link>
-    
-    {/* Elementos a la derecha */}
-    <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
-      
-      <Link 
-        href="/login" 
-        className="bg-[#8b6f4c] px-2 sm:px-3 md:px-6 py-0.5 sm:py-1 md:py-2 text-[8px] sm:text-xs md:text-base text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors border-2 border-[#f0d9b5] whitespace-nowrap rounded"
-      >
-        UNIRTE
-      </Link>
+  <div 
+  className="relative h-full flex items-center justify-between px-2 sm:px-4 md:px-8"
+  style={{
+    backgroundImage: 'url("/banner-magios.png")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat'
+  }}
+>
+  {/* Overlay oscuro opcional para mejorar legibilidad */}
+  <div className="absolute inset-0 bg-black/30" />
+  
+  {/* Logo a la izquierda */}
+  <Link href="/" className="flex items-center group relative z-10">
+    <div className="w-16 sm:w-24 md:w-36 h-auto">
+      <Image
+        src="/magios.png"
+        alt="Portal Oscuro"
+        width={400}
+        height={200}
+        className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-300"
+        priority
+      />
     </div>
+  </Link>
+  
+  {/* Elementos a la derecha */}
+  <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4 relative z-10">
+    
+    <Link 
+      href="/login" 
+      className="bg-[#8b6f4c] px-2 sm:px-3 md:px-6 py-0.5 sm:py-1 md:py-2 text-[8px] sm:text-xs md:text-base text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors border-2 border-[#f0d9b5] whitespace-nowrap rounded"
+    >
+      UNIRTE
+    </Link>
   </div>
+</div>
 </header>
 
         {/* Barra de navegación - responsive con scroll */}
