@@ -33,40 +33,32 @@ export default function Home() {
 
       {/* Contenido principal con z-index para estar sobre el fondo */}
       <div className="relative z-10 min-h-screen text-[#c4aa7d]">
-        {/* Header con banner estilo WoW - ajustado para móvil */}
-        <header className="relative h-48 sm:h-64 w-full border-b-4 border-[#8b6f4c] bg-gradient-to-b from-[#1a1f23]/80 to-[#0a0c0e]/80 backdrop-blur-sm">
-          <div className="absolute inset-0 opacity-10" style={{
-            backgroundImage: "url('data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c4aa7d' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
-            backgroundRepeat: 'repeat'
-          }}></div>
-          
-          {/* Logo y título - tamaños reducidos en móvil */}
-          <div className="relative h-full flex flex-col items-center justify-center px-4">
-            <div className="w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-[#8b6f4c] to-[#4a3a28] rounded-full border-4 border-[#c4aa7d] flex items-center justify-center mb-2 sm:mb-4 shadow-2xl">
-              <span className="text-3xl sm:text-5xl drop-shadow-lg">⚔️</span>
-            </div>
-            {/* <h1 className="text-3xl sm:text-5xl font-bold text-[#f0d9b5] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider text-center">
-              MAGIOS GUILD
-            </h1> */}
-           <Image
-  src="/logo-magios.png"
-  alt="Portal Oscuro"
-  width={200}
-  height={100}
-  className="z-10"
-  sizes="100vw" // 50% del viewport
-  style={{
-    width: '30%',
-    height: 'auto'
-  }}
-  priority
-/>
-            <p className="text-sm sm:text-xl text-[#8b6f4c] mt-1 sm:mt-2 text-center px-2">
-              • World of Warcraft Classic •
-            </p>
-          </div>
-        </header>
-
+       <header className="relative h-48 sm:h-64 w-full border-b-4 border-[#8b6f4c] bg-gradient-to-b from-[#1a1f23]/80 to-[#0a0c0e]/80 backdrop-blur-sm">
+  <div className="absolute inset-0 opacity-10" style={{
+    backgroundImage: "url('data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c4aa7d' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
+    backgroundRepeat: 'repeat'
+  }}></div>
+  
+  {/* Contenedor flex column para apilar elementos verticalmente */}
+  <div className="relative h-full flex flex-col items-center justify-center px-4">
+    {/* Imagen con tamaño controlado */}
+    <div className="w-1/2 sm:w-1/3 max-w-[250px]">
+      <Image
+        src="/logo-magios.png"
+        alt="Portal Oscuro"
+        width={400}
+        height={200}
+        className="w-full h-auto object-contain"
+        priority
+      />
+    </div>
+    
+    {/* Texto decorativo */}
+    <p className="text-sm sm:text-base text-[#8b6f4c] mt-2 text-center px-2 tracking-wider">
+      • World of Warcraft Classic •
+    </p>
+  </div>
+</header>
         {/* Barra de navegación estilo WoW - responsive con scroll horizontal en móvil */}
         <nav className="bg-[#1a1f23]/80 border-y-2 border-[#8b6f4c] py-1 sm:py-2 overflow-x-auto backdrop-blur-sm">
           <ul className="flex justify-start sm:justify-center space-x-2 sm:space-x-4 md:space-x-8 text-[#c4aa7d] px-2 min-w-max sm:min-w-0">
@@ -175,7 +167,7 @@ export default function Home() {
         {/* Footer estilo WoW */}
         <footer className="bg-[#0a0c0e]/80 border-t-4 border-[#8b6f4c] py-4 sm:py-6 mt-8 sm:mt-12 backdrop-blur-sm">
           <div className="max-w-6xl mx-auto px-4 text-center text-xs sm:text-sm text-[#6b5a4c]">
-            <p>© 2024 - Hermandad de World of Warcraft Classic</p>
+            <p>© 2026 - Hermandad de World of Warcraft Classic</p>
             <p className="mt-1 sm:mt-2">⚡ For the Horde! ⚔️ For the Alliance! ⚡</p>
           </div>
         </footer>
