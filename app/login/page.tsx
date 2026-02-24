@@ -19,6 +19,7 @@ export default function Login() {
           fill
           className="object-cover -z-11 "
           priority
+          unoptimized
         />
         {/* Overlay con degradado para mejorar legibilidad */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c0e]/90 via-[#0a0c0e]/70 to-[#0a0c0e]/90"></div>
