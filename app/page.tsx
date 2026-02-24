@@ -40,24 +40,32 @@ export default function Home() {
   }}></div>
   
   {/* Contenedor flex column para apilar elementos verticalmente */}
-  <div className="relative h-full flex flex-col items-center justify-center px-4">
-    {/* Imagen con tamaño controlado */}
-    <div className="w-1/2 sm:w-1/3 max-w-[450px]">
-      <Image
-        src="/magios.png"
-        alt="Portal Oscuro"
-        width={400}
-        height={200}
-        className="w-full h-auto object-contain"
-        priority
-      />
-    </div>
-    
-    {/* Texto decorativo */}
-    <p className="text-sm sm:text-base text-[#8b6f4c] mt-2 text-center px-2 tracking-wider">
-      • Turtle WoW Guild •
-    </p>
+  <div 
+  className="relative h-full flex flex-col items-center justify-center px-4"
+  style={{
+    backgroundImage: 'url("/banner-magios.png")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat'
+  }}
+>
+  {/* Imagen con tamaño controlado */}
+  <div className="w-1/2 sm:w-1/3 max-w-[450px]">
+    <Image
+      src="/magios.png"
+      alt="Portal Oscuro"
+      width={400}
+      height={200}
+      className="w-full h-auto object-contain"
+      priority
+    />
   </div>
+  
+  {/* Texto decorativo */}
+  <p className="text-sm sm:text-base text-[#8b6f4c] mt-2 text-center px-2 tracking-wider">
+    • Turtle WoW Guild •
+  </p>
+</div>
 </header>
         {/* Barra de navegación estilo WoW - responsive con scroll horizontal en móvil */}
         <nav className="bg-[#1a1f23]/80 border-y-2 border-[#8b6f4c] py-1 sm:py-2 overflow-x-auto backdrop-blur-sm">
