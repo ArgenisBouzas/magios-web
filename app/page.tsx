@@ -1,5 +1,9 @@
+import { Head } from "next/document";
 import Image from "next/image";
 import Link from "next/link";
+import Header_principal from "./components/layout/Header_principal";
+import Barra_navegacion from "./components/layout/Barra_navegacion";
+import Footer from "./components/layout/Footer";
 
 export default function Home() {
   return (
@@ -33,64 +37,9 @@ export default function Home() {
 
       {/* Contenido principal con z-index para estar sobre el fondo */}
       <div className="relative z-10 min-h-screen text-[#c4aa7d]">
-       <header className="relative h-48 sm:h-64 w-full border-b-4 border-[#8b6f4c] bg-gradient-to-b from-[#1a1f23]/80 to-[#0a0c0e]/80 backdrop-blur-sm">
-  <div className="absolute inset-0 opacity-10" style={{
-    backgroundImage: "url('data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c4aa7d' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
-    backgroundRepeat: 'repeat'
-  }}></div>
-  
-  {/* Contenedor flex column para apilar elementos verticalmente */}
-  <div 
-  className="relative h-full flex flex-col items-center justify-center px-4"
-  style={{
-    backgroundImage: 'url("/banner-magios.png")',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat'
-  }}
->
-  {/* Imagen con tamaño controlado */}
-  <div className="w-1/2 sm:w-1/3 max-w-[450px]">
-    <Image
-      src="/magios.png"
-      alt="Portal Oscuro"
-      width={400}
-      height={200}
-      className="w-full h-auto object-contain"
-      priority
-    />
-  </div>
-  
-  {/* Texto decorativo */}
-  <p className="text-sm sm:text-base text-[#8b6f4c] mt-2 text-center px-2 tracking-wider">
-    • Turtle WoW Guild •
-  </p>
-</div>
-</header>
+        <Header_principal/>
         {/* Barra de navegación estilo WoW - responsive con scroll horizontal en móvil */}
-        <nav className="bg-[#1a1f23]/80 border-y-2 border-[#8b6f4c] py-1 sm:py-2 overflow-x-auto backdrop-blur-sm">
-          <ul className="flex justify-start sm:justify-center space-x-2 sm:space-x-4 md:space-x-8 text-[#c4aa7d] px-2 min-w-max sm:min-w-0">
-            {[
-              { nombre: 'Inicio', ruta: '/' },
-              { nombre: 'Miembros', ruta: '/miembros' },
-              { nombre: 'Progreso', ruta: '/progreso' },
-              { nombre: 'Noticias', ruta: '/noticias' },
-              { nombre: 'Unirte', ruta: '/login' }
-            ].map((item) => (
-              <li key={item.nombre}>
-                <Link 
-                  href={item.ruta}
-                  className={`px-1 sm:px-2 md:px-4 py-0.5 sm:py-1 md:py-2 hover:text-[#f0d9b5] hover:bg-[#2a2f33] transition-all duration-300 border-b-2 border-transparent hover:border-[#8b6f4c] uppercase tracking-wider text-[10px] sm:text-xs md:text-sm font-semibold whitespace-nowrap ${
-                    item.nombre === 'Inicio' ? 'text-[#f0d9b5] border-b-2 border-[#8b6f4c]' : ''
-                  }`}
-                >
-                  {item.nombre}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
+        <Barra_navegacion/>
         {/* Contenido principal */}
         <main className="max-w-6xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
           {/* Sección de bienvenida estilo pergamino */}
@@ -173,12 +122,7 @@ export default function Home() {
         </main>
 
         {/* Footer estilo WoW */}
-        <footer className="bg-[#0a0c0e]/80 border-t-4 border-[#8b6f4c] py-4 sm:py-6 mt-8 sm:mt-12 backdrop-blur-sm">
-          <div className="max-w-6xl mx-auto px-4 text-center text-xs sm:text-sm text-[#6b5a4c]">
-            <p>© 2026 - Hermandad de World of Warcraft Classic</p>
-            <p className="mt-1 sm:mt-2">⚡ For the Horde! ⚔️ For the Alliance! ⚡</p>
-          </div>
-        </footer>
+        <Footer></Footer>
       </div>
 
       {/* Efectos de borde del portal */}

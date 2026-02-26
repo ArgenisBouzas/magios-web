@@ -144,6 +144,7 @@ export default function Login() {
           <div className="mt-4 text-center text-[#8b6f4c] text-xs">
             <p>© 2026 Hermandad • Turtle Wow</p>
             <p className="mt-1">⚡ For the Horde! ⚡ For the Alliance! ⚡</p>
+            <p>© 2026 - Argenis Bouzas</p>
           </div>
         </div>
       </div>
