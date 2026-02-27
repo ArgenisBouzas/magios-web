@@ -129,7 +129,7 @@ export default function RegisterPage() {
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           {/* Marco estilo WoW */}
-          <div className="relative bg-[#1a1f23]/95 border-2 border-[#8b6f4c] p-6 md:p-8 shadow-2xl backdrop-blur-sm">
+          <div className="">
             
             {/* Esquinas decorativas */}
             <div className="absolute top-0 left-0 w-4 md:w-8 h-4 md:h-8 border-t-2 border-l-2 border-[#c4aa7d]"></div>
