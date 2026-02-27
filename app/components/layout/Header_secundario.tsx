@@ -26,7 +26,7 @@ export default function Header_secundario(){
             <div className="absolute inset-0 bg-black/30" />
 
             {/* Logo a la izquierda */}
-            <Link href="/" className="flex items-center group relative z-10">
+            <Link href="/login" className="flex items-center group relative z-10">
               <div className="w-16 sm:w-24 md:w-36 h-auto">
                 <Image
                   src="/magios.png"

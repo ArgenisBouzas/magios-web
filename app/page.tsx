@@ -9,12 +9,12 @@ export default function Home() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Fondo del Portal Oscuro (igual que en login) */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0" >
         <Image
           src="/portal-oscuro.png"
           alt="Portal Oscuro"
           fill
-          className="object-cover -z-10"
+          className="object-cover "
           priority
         />
         <Image
@@ -26,7 +26,7 @@ export default function Home() {
           unoptimized
         />
         {/* Overlay con degradado para mejorar legibilidad */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c0e]/90 via-[#0a0c0e]/70 to-[#0a0c0e]/90"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c0e]/90 via-[#0a0c0e]/70 to-[#0a0c0e]/90 "></div>
         
         {/* Partículas mágicas (efecto del portal) */}
         <div className="absolute inset-0 opacity-20 md:opacity-30">
@@ -36,7 +36,7 @@ export default function Home() {
       </div>
 
       {/* Contenido principal con z-index para estar sobre el fondo */}
-      <div className="relative z-10 min-h-screen text-[#c4aa7d]">
+      <div className="relative min-h-screen text-[#c4aa7d] ">
         <Header_principal/>
         {/* Barra de navegación estilo WoW - responsive con scroll horizontal en móvil */}
         <Barra_navegacion/>
@@ -126,8 +126,8 @@ export default function Home() {
       </div>
 
       {/* Efectos de borde del portal */}
-      <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-32 bg-gradient-to-t from-[#0a0c0e] to-transparent z-10"></div>
-      <div className="absolute top-0 left-0 right-0 h-16 sm:h-32 bg-gradient-to-b from-[#0a0c0e] to-transparent z-10"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-32 bg-gradient-to-t from-[#0a0c0e] to-transparent z-14"></div>
+      <div className="absolute top-0 left-0 right-0 h-16 sm:h-32 bg-gradient-to-b from-[#0a0c0e] to-transparent -z-0"></div>
     </div>
   );
 }
