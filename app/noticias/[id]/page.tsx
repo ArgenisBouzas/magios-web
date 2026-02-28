@@ -80,123 +80,141 @@ export default function NoticiaDetallePage({ params }: { params: Promise<{ id: s
   };
 
   // Función para renderizar el contenido con soporte para títulos, negritas e imágenes
-  const renderizarContenido = (texto: string) => {
-    if (!texto) return null;
+ // Reemplaza toda la función renderizarContenido con esta versión corregida
 
-    const lineas = texto.split('\n');
-    const elementos: JSX.Element[] = [];
+const renderizarContenido = (texto: string) => {
+  if (!texto) return null;
 
-    lineas.forEach((linea, indexLinea) => {
-      if (!linea.trim()) {
-        elementos.push(<br key={`br-${indexLinea}`} />);
-        return;
-      }
+  const lineas = texto.split('\n');
+  const elementos: JSX.Element[] = [];
 
-      // Detectar títulos
-      if (linea.startsWith('# ')) {
-        elementos.push(
-          <h1 key={`h1-${indexLinea}`} className="text-2xl md:text-4xl font-bold text-[#f0d9b5] mt-6 md:mt-8 mb-3 md:mb-4">
-            {linea.substring(2)}
-          </h1>
-        );
-        return;
-      }
-      if (linea.startsWith('## ')) {
-        elementos.push(
-          <h2 key={`h2-${indexLinea}`} className="text-xl md:text-3xl font-bold text-[#f0d9b5] mt-5 md:mt-6 mb-2 md:mb-3">
-            {linea.substring(3)}
-          </h2>
-        );
-        return;
-      }
-      if (linea.startsWith('### ')) {
-        elementos.push(
-          <h3 key={`h3-${indexLinea}`} className="text-lg md:text-2xl font-bold text-[#f0d9b5] mt-4 md:mt-5 mb-2">
-            {linea.substring(4)}
-          </h3>
-        );
-        return;
-      }
+  lineas.forEach((linea, indexLinea) => {
+    if (!linea.trim()) {
+      elementos.push(<br key={`br-${indexLinea}`} />);
+      return;
+    }
 
-      // Detectar URLs de imágenes
-      const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp))/gi;
-      
-      // Si la línea es solo una URL de imagen
-      if (linea.match(urlRegex) && !linea.replace(urlRegex, '').trim()) {
-        elementos.push(
-          <div key={`img-${indexLinea}`} className="my-6 md:my-8">
-            <div className="relative w-full h-48 md:h-96 bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
+    // Detectar títulos
+    if (linea.startsWith('# ')) {
+      elementos.push(
+        <h1 key={`h1-${indexLinea}`} className="text-2xl md:text-4xl font-bold text-[#f0d9b5] mt-6 md:mt-8 mb-3 md:mb-4">
+          {linea.substring(2)}
+        </h1>
+      );
+      return;
+    }
+    if (linea.startsWith('## ')) {
+      elementos.push(
+        <h2 key={`h2-${indexLinea}`} className="text-xl md:text-3xl font-bold text-[#f0d9b5] mt-5 md:mt-6 mb-2 md:mb-3">
+          {linea.substring(3)}
+        </h2>
+      );
+      return;
+    }
+    if (linea.startsWith('### ')) {
+      elementos.push(
+        <h3 key={`h3-${indexLinea}`} className="text-lg md:text-2xl font-bold text-[#f0d9b5] mt-4 md:mt-5 mb-2">
+          {linea.substring(4)}
+        </h3>
+      );
+      return;
+    }
+
+    // Detectar URLs de imágenes
+    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp))/gi;
+    
+    // Si la línea es solo una URL de imagen, la añadimos directamente (fuera de <p>)
+    if (linea.match(urlRegex) && !linea.replace(urlRegex, '').trim()) {
+      elementos.push(
+        <div key={`img-${indexLinea}`} className="my-6 md:my-8">
+          <div className="relative w-full h-48 md:h-96 bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
+            <Image
+              src={linea}
+              alt="Imagen en noticia"
+              fill
+              className="object-contain"
+              unoptimized
+              priority={indexLinea < 2}
+              sizes="(max-width: 768px) 100vw, 800px"
+            />
+          </div>
+        </div>
+      );
+      return;
+    }
+
+    // Procesar líneas que contienen texto (posiblemente con URLs de imágenes incrustadas)
+    const partes = linea.split(urlRegex);
+    // Nuevo array para acumular elementos de ESTA línea, separando texto de imágenes
+    const elementosLinea: JSX.Element[] = [];
+    const fragmentosTexto: JSX.Element[] = []; // Para acumular texto de esta línea
+
+    partes.forEach((parte, indexParte) => {
+      if (parte.match(urlRegex)) {
+        // --- ES UNA IMAGEN ---
+        // Si había texto acumulado antes, lo añadimos como <p> primero
+        if (fragmentosTexto.length > 0) {
+          elementosLinea.push(
+            <p key={`p-texto-${indexLinea}-${indexParte}`} className="mb-3 md:mb-4 text-sm md:text-base text-[#c4aa7d]">
+              {fragmentosTexto}
+            </p>
+          );
+          // Limpiamos el array de fragmentos de texto
+          fragmentosTexto.length = 0;
+        }
+        // Añadimos la imagen como un bloque independiente (FUERA de <p>)
+        elementosLinea.push(
+          <div key={`img-inline-${indexLinea}-${indexParte}`} className="my-3 md:my-4">
+            <div className="relative w-full h-40 md:h-64 bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
               <Image
-                src={linea}
+                src={parte}
                 alt="Imagen en noticia"
                 fill
                 className="object-contain"
                 unoptimized
-                priority={indexLinea < 2} // Prioridad solo a las primeras imágenes
-                sizes="(max-width: 768px) 100vw, 800px"
+                sizes="(max-width: 768px) 100vw, 600px"
               />
             </div>
           </div>
         );
-        return;
-      }
-
-      // Procesar líneas con texto e imágenes
-      const partes = linea.split(urlRegex);
-      const elementosLinea: JSX.Element[] = [];
-      let tieneTexto = false;
-
-      partes.forEach((parte, indexParte) => {
-        if (parte.match(urlRegex)) {
-          elementosLinea.push(
-            <div key={`img-inline-${indexLinea}-${indexParte}`} className="my-3 md:my-4">
-              <div className="relative w-full h-40 md:h-64 bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
-                <Image
-                  src={parte}
-                  alt="Imagen en noticia"
-                  fill
-                  className="object-contain"
-                  unoptimized
-                  sizes="(max-width: 768px) 100vw, 600px"
-                />
-              </div>
-            </div>
+      } else if (parte.trim()) {
+        // --- ES TEXTO ---
+        // Procesar negritas en el texto y acumularlo en fragmentosTexto
+        const boldRegex = /\*\*(.*?)\*\*/g;
+        const textParts = parte.split(boldRegex);
+        
+        if (textParts.length === 1) {
+          fragmentosTexto.push(<span key={`text-${indexLinea}-${indexParte}-${parte.substring(0,20)}`}>{parte}</span>);
+        } else {
+          fragmentosTexto.push(
+            <span key={`bold-${indexLinea}-${indexParte}`}>
+              {textParts.map((text, i) => {
+                if (i % 2 === 1) {
+                  return <strong key={`strong-${i}`} className="text-[#f0d9b5] font-bold">{text}</strong>;
+                }
+                return <span key={`normal-${i}`}>{text}</span>;
+              })}
+            </span>
           );
-        } else if (parte.trim()) {
-          tieneTexto = true;
-          const boldRegex = /\*\*(.*?)\*\*/g;
-          const textParts = parte.split(boldRegex);
-          
-          if (textParts.length === 1) {
-            elementosLinea.push(<span key={`text-${indexLinea}-${indexParte}`}>{parte}</span>);
-          } else {
-            elementosLinea.push(
-              <span key={`bold-${indexLinea}-${indexParte}`}>
-                {textParts.map((text, i) => {
-                  if (i % 2 === 1) {
-                    return <strong key={`strong-${i}`} className="text-[#f0d9b5] font-bold">{text}</strong>;
-                  }
-                  return <span key={`normal-${i}`}>{text}</span>;
-                })}
-              </span>
-            );
-          }
         }
-      });
-
-      if (tieneTexto) {
-        elementos.push(
-          <p key={`p-${indexLinea}`} className="mb-3 md:mb-4 text-sm md:text-base text-[#c4aa7d]">
-            {elementosLinea}
-          </p>
-        );
-      } else {
-        elementos.push(...elementosLinea);
       }
     });
 
-    return elementos;
-  };
+    // Al final de la línea, si quedó texto acumulado, lo añadimos como <p>
+    if (fragmentosTexto.length > 0) {
+      elementosLinea.push(
+        <p key={`p-final-${indexLinea}`} className="mb-3 md:mb-4 text-sm md:text-base text-[#c4aa7d]">
+          {fragmentosTexto}
+        </p>
+      );
+    }
+
+    // Añadimos todos los elementos generados para esta línea al resultado final
+    elementos.push(...elementosLinea);
+  });
+
+  return elementos;
+};
 
   if (loading) {
     return (

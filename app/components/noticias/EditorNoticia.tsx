@@ -58,10 +58,9 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
   const insertImage = () => {
     if (!imageUrl) return;
     
-    // Validar que la URL tenga un formato básico de imagen
     const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp))/gi;
     if (!imageUrl.match(urlRegex)) {
-      alert('Por favor, ingresa una URL válida de imagen (debe terminar en .jpg, .png, .gif, etc.)');
+      alert('Por favor, ingresa una URL válida de imagen');
       return;
     }
 
@@ -79,36 +78,53 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
   };
 
   const testImageUrl = (url: string) => {
-    // URLs de ejemplo que sí funcionan para pruebas
     const ejemplos: Record<string, string> = {
       'wow1': 'https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg',
       'wow2': 'https://wow.zamimg.com/images/wow/icons/large/inv_chest_plate_06.jpg',
       'wow3': 'https://wow.zamimg.com/images/wow/icons/large/spell_fire_fireball.jpg',
-      'wow4': 'https://wow.zamimg.com/images/wow/icons/large/ability_warrior_charge.jpg',
-      'wow5': 'https://wow.zamimg.com/images/wow/icons/large/spell_holy_wordfortitude.jpg',
     };
-
     if (ejemplos[url]) {
       setImageUrl(ejemplos[url]);
     }
   };
 
-  // Vista previa en tiempo real
+  // Vista previa en tiempo real - CORREGIDA
   const renderPreview = () => {
     if (!content) return null;
 
     const lines = content.split('\n');
-    
-    return lines.map((line, lineIndex) => {
+    const elementos: JSX.Element[] = [];
+
+    lines.forEach((line, lineIndex) => {
+      if (!line.trim()) {
+        elementos.push(<br key={`br-${lineIndex}`} />);
+        return;
+      }
+
       // Detectar títulos
       if (line.startsWith('# ')) {
-        return <h1 key={lineIndex} className="text-4xl font-bold text-[#f0d9b5] mt-6 mb-4">{line.substring(2)}</h1>;
+        elementos.push(
+          <h1 key={`h1-${lineIndex}`} className="text-4xl font-bold text-[#f0d9b5] mt-6 mb-4">
+            {line.substring(2)}
+          </h1>
+        );
+        return;
       }
       if (line.startsWith('## ')) {
-        return <h2 key={lineIndex} className="text-3xl font-bold text-[#f0d9b5] mt-5 mb-3">{line.substring(3)}</h2>;
+        elementos.push(
+          <h2 key={`h2-${lineIndex}`} className="text-3xl font-bold text-[#f0d9b5] mt-5 mb-3">
+            {line.substring(3)}
+          </h2>
+        );
+        return;
       }
       if (line.startsWith('### ')) {
-        return <h3 key={lineIndex} className="text-2xl font-bold text-[#f0d9b5] mt-4 mb-2">{line.substring(4)}</h3>;
+        elementos.push(
+          <h3 key={`h3-${lineIndex}`} className="text-2xl font-bold text-[#f0d9b5] mt-4 mb-2">
+            {line.substring(4)}
+          </h3>
+        );
+        return;
       }
 
       // Detectar URLs de imágenes
@@ -116,8 +132,8 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
       
       // Si la línea es solo una URL de imagen
       if (line.match(urlRegex) && !line.replace(urlRegex, '').trim()) {
-        return (
-          <div key={lineIndex} className="my-6">
+        elementos.push(
+          <div key={`img-${lineIndex}`} className="my-6">
             <div className="relative w-full h-64 bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
               <Image
                 src={line}
@@ -125,25 +141,32 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
                 fill
                 className="object-contain"
                 unoptimized
-                onError={(e) => {
-                  console.warn('Error al cargar imagen en vista previa:', line);
-                  // Mostrar un placeholder en caso de error
-                  e.currentTarget.parentElement?.classList.add('bg-red-900/20');
-                }}
               />
             </div>
           </div>
         );
+        return;
       }
 
-      // Procesar línea con posible texto e imágenes
+      // Procesar líneas que mezclan texto e imágenes
       const partes = line.split(urlRegex);
-      const elementos: JSX.Element[] = [];
+      const fragmentosTexto: JSX.Element[] = [];
+      const elementosLinea: JSX.Element[] = [];
 
       partes.forEach((parte, idx) => {
         if (parte.match(urlRegex)) {
-          elementos.push(
-            <div key={`img-${idx}`} className="inline-block my-2 w-full">
+          // Es una imagen - primero sacamos el texto acumulado si existe
+          if (fragmentosTexto.length > 0) {
+            elementosLinea.push(
+              <p key={`p-${lineIndex}-${idx}`} className="mb-4 text-[#c4aa7d]">
+                {fragmentosTexto}
+              </p>
+            );
+            fragmentosTexto.length = 0;
+          }
+          // Luego añadimos la imagen como bloque separado
+          elementosLinea.push(
+            <div key={`img-${lineIndex}-${idx}`} className="my-4">
               <div className="relative w-full h-48 bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
                 <Image
                   src={parte}
@@ -151,23 +174,20 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
                   fill
                   className="object-contain"
                   unoptimized
-                  onError={(e) => {
-                    console.warn('Error al cargar imagen en línea:', parte);
-                  }}
                 />
               </div>
             </div>
           );
         } else if (parte.trim()) {
-          // Procesar negritas
+          // Es texto - procesar negritas
           const boldRegex = /\*\*(.*?)\*\*/g;
           const textParts = parte.split(boldRegex);
           
           if (textParts.length === 1) {
-            elementos.push(<span key={`text-${idx}`}>{parte}</span>);
+            fragmentosTexto.push(<span key={`text-${lineIndex}-${idx}`}>{parte}</span>);
           } else {
-            elementos.push(
-              <span key={`bold-${idx}`}>
+            fragmentosTexto.push(
+              <span key={`bold-${lineIndex}-${idx}`}>
                 {textParts.map((text, i) => {
                   if (i % 2 === 1) {
                     return <strong key={`strong-${i}`} className="text-[#f0d9b5] font-bold">{text}</strong>;
@@ -180,17 +200,24 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
         }
       });
 
-      return (
-        <p key={lineIndex} className="mb-4 text-[#c4aa7d]">
-          {elementos}
-        </p>
-      );
+      // Si quedó texto acumulado al final
+      if (fragmentosTexto.length > 0) {
+        elementosLinea.push(
+          <p key={`p-final-${lineIndex}`} className="mb-4 text-[#c4aa7d]">
+            {fragmentosTexto}
+          </p>
+        );
+      }
+
+      elementos.push(...elementosLinea);
     });
+
+    return elementos;
   };
 
   return (
     <div className="space-y-4">
-      {/* Barra de herramientas mejorada */}
+      {/* Barra de herramientas */}
       <div className="flex flex-wrap gap-2 mb-4 p-2 bg-[#1a1f23]/80 border border-[#8b6f4c] rounded">
         <button
           onClick={() => insertFormat('h1')}
@@ -263,7 +290,6 @@ https://wow.zamimg.com/images/wow/icons/large/spell_fire_fireball.jpg`}
               Insertar imagen por URL
             </h3>
             
-            {/* Ejemplos rápidos */}
             <div className="mb-4">
               <p className="text-[#8b6f4c] text-xs mb-2">Ejemplos de imágenes de WoW:</p>
               <div className="flex flex-wrap gap-2">
@@ -307,9 +333,7 @@ https://wow.zamimg.com/images/wow/icons/large/spell_fire_fireball.jpg`}
                   fill
                   className="object-contain"
                   unoptimized
-                  onError={() => {
-                    setImageError(true);
-                  }}
+                  onError={() => setImageError(true)}
                 />
               </div>
             )}
@@ -343,7 +367,7 @@ https://wow.zamimg.com/images/wow/icons/large/spell_fire_fireball.jpg`}
         </div>
       )}
 
-      {/* Vista previa mejorada */}
+      {/* Vista previa mejorada - AHORA CON HTML VÁLIDO */}
       {content && (
         <div className="mt-8 p-6 bg-[#1a1f23]/80 border-2 border-[#8b6f4c] rounded">
           <h4 className="text-[#f0d9b5] text-sm mb-4 border-b border-[#8b6f4c] pb-2 font-bold uppercase tracking-wider">
@@ -363,9 +387,6 @@ https://wow.zamimg.com/images/wow/icons/large/spell_fire_fireball.jpg`}
                       fill
                       className="object-cover"
                       unoptimized
-                      onError={(e) => {
-                        // Solo mostrar un placeholder silencioso
-                      }}
                     />
                   </div>
                 ))}
@@ -373,7 +394,7 @@ https://wow.zamimg.com/images/wow/icons/large/spell_fire_fireball.jpg`}
             </div>
           )}
 
-          {/* Contenido renderizado */}
+          {/* Contenido renderizado - AHORA CON ESTRUCTURA HTML CORRECTA */}
           <div className="prose prose-invert max-w-none">
             {renderPreview()}
           </div>

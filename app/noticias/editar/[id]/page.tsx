@@ -41,18 +41,25 @@ export default function EditarNoticiaPage({ params }: { params: Promise<{ id: st
   const [usuario, setUsuario] = useState<any>(null);
   const [noticia, setNoticia] = useState<Noticia | null>(null);
   const [puedeEditar, setPuedeEditar] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
-  // Detectar si es móvil
+  // Marcar que estamos en el cliente
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
+    setIsClient(true);
   }, []);
 
   useEffect(() => {
-    fetchUsuario();
-    fetchCategorias();
-    fetchNoticia();
-  }, [id]);
+    if (isClient) {
+      fetchUsuario();
+      fetchCategorias();
+    }
+  }, [isClient]);
+
+  useEffect(() => {
+    if (isClient && usuario) {
+      fetchNoticia();
+    }
+  }, [isClient, usuario, id]);
 
   const fetchUsuario = async () => {
     try {
@@ -65,6 +72,8 @@ export default function EditarNoticiaPage({ params }: { params: Promise<{ id: st
       }
     } catch (error) {
       console.error('Error al obtener usuario:', error);
+      // Timeout para reintentar
+      setTimeout(() => fetchUsuario(), 2000);
     }
   };
 
@@ -77,6 +86,8 @@ export default function EditarNoticiaPage({ params }: { params: Promise<{ id: st
       }
     } catch (error) {
       console.error('Error al cargar categorías:', error);
+      // Reintentar después de 2 segundos
+      setTimeout(() => fetchCategorias(), 2000);
     }
   };
 
@@ -92,7 +103,6 @@ export default function EditarNoticiaPage({ params }: { params: Promise<{ id: st
       setContenido(data.contenido);
       setCategoriasSeleccionadas(data.categorias.map((c: Categoria) => c.id));
 
-      // Verificar permisos después de tener los datos
       if (usuario) {
         const esAutor = usuario.id === data.autor_id;
         const esAdmin = usuario.rango === 'General' || usuario.rango === 'Oficial';
@@ -102,6 +112,8 @@ export default function EditarNoticiaPage({ params }: { params: Promise<{ id: st
     } catch (error) {
       console.error('Error:', error);
       setError('No se pudo cargar la noticia');
+      // Reintentar después de 3 segundos
+      setTimeout(() => fetchNoticia(), 3000);
     } finally {
       setLoading(false);
     }
@@ -161,6 +173,31 @@ export default function EditarNoticiaPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  // Renderizado condicional para evitar problemas de hidratación
+  if (!isClient) {
+    return (
+      <div className="relative min-h-screen overflow-hidden">
+        <div className="absolute inset-0">
+          <Image 
+            src="/portal-oscuro.png" 
+            alt="Portal Oscuro" 
+            fill 
+            className="object-cover -z-10" 
+            priority 
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c0e]/90 via-[#0a0c0e]/70 to-[#0a0c0e]/90"></div>
+        </div>
+        <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-[#8b6f4c] border-t-[#f0d9b5] rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-[#c4aa7d] text-lg">Inicializando editor...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="relative min-h-screen overflow-hidden">
@@ -187,6 +224,13 @@ export default function EditarNoticiaPage({ params }: { params: Promise<{ id: st
           <div className="text-center">
             <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-[#8b6f4c] border-t-[#f0d9b5] rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-[#c4aa7d] text-base sm:text-lg">Cargando editor...</p>
+            <p className="text-[#8b6f4c] text-xs sm:text-sm mt-2">Si tarda demasiado, verifica tu conexión</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 bg-[#2a2f33] border border-[#8b6f4c] px-4 py-2 text-xs text-[#c4aa7d] hover:bg-[#3a3f43] transition-colors"
+            >
+              REINTENTAR
+            </button>
           </div>
         </div>
       </div>
