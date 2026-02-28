@@ -25,6 +25,8 @@ interface Personaje {
   nivel: number;
   rango: string;
   fecha_creacion: string;
+  usuario_id: number;
+  nombre_usuario?: string;
 }
 
 // Mapeo de clases a sus iconos
@@ -49,6 +51,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
+  const [todosPersonajes, setTodosPersonajes] = useState<Personaje[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({
@@ -56,6 +59,18 @@ export default function DashboardPage() {
     nivel60: 0,
     personajePrincipal: null as Personaje | null
   });
+
+  // Estados para filtros de personajes globales
+  const [filtroNombre, setFiltroNombre] = useState('');
+  const [filtroRango, setFiltroRango] = useState('');
+  const [filtroClase, setFiltroClase] = useState('');
+  const [paginaActual, setPaginaActual] = useState(1);
+  const personajesPorPagina = 8;
+
+  // Estado para modal de cambio de rango
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [personajeSeleccionado, setPersonajeSeleccionado] = useState<Personaje | null>(null);
+  const [nuevoRango, setNuevoRango] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
@@ -83,6 +98,15 @@ export default function DashboardPage() {
       const personajesData = await personajesRes.json();
       setPersonajes(personajesData);
 
+      // Si es General u Oficial, obtener todos los personajes
+      if (userData.usuario.rango === 'General' || userData.usuario.rango === 'Oficial') {
+        const todosRes = await fetch('/api/personajes/todos');
+        if (todosRes.ok) {
+          const todosData = await todosRes.json();
+          setTodosPersonajes(todosData);
+        }
+      }
+
       // Calcular estadísticas
       const nivel60 = personajesData.filter((p: Personaje) => p.nivel === 60).length;
       const principal = personajesData.sort((a: Personaje, b: Personaje) => b.nivel - a.nivel)[0] || null;
@@ -101,6 +125,57 @@ export default function DashboardPage() {
     }
   };
 
+  const cambiarRangoPersonaje = async () => {
+    if (!personajeSeleccionado || !nuevoRango) return;
+
+    try {
+      setError('');
+      const res = await fetch(`/api/personajes/${personajeSeleccionado.id}/rango`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nuevoRango })
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Error al cambiar rango');
+      }
+
+      setExito(`Rango de ${personajeSeleccionado.nombre_personaje} cambiado a ${nuevoRango}`);
+      setModalAbierto(false);
+      
+      // Recargar datos
+      await fetchDashboardData();
+      
+      setTimeout(() => setExito(''), 3000);
+    } catch (error: any) {
+      setError(error.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  // Filtrar personajes globales
+  const personajesFiltrados = todosPersonajes.filter(p => {
+    if (filtroNombre && !p.nombre_personaje.toLowerCase().includes(filtroNombre.toLowerCase())) return false;
+    if (filtroRango && p.rango !== filtroRango) return false;
+    if (filtroClase && p.clase !== filtroClase) return false;
+    return true;
+  });
+
+  // Paginación
+  const totalPaginas = Math.ceil(personajesFiltrados.length / personajesPorPagina);
+  const personajesPaginados = personajesFiltrados.slice(
+    (paginaActual - 1) * personajesPorPagina,
+    paginaActual * personajesPorPagina
+  );
+
+  // Obtener rangos únicos para filtro
+  const rangosUnicos = [...new Set(todosPersonajes.map(p => p.rango))].sort();
+  const clasesUnicas = [...new Set(todosPersonajes.map(p => p.clase))].sort();
+
+  // Estado para éxito
+  const [exito, setExito] = useState('');
+
   if (loading) {
     return (
       <div className="relative min-h-screen overflow-hidden">
@@ -117,7 +192,7 @@ export default function DashboardPage() {
   }
 
   if (!usuario) {
-    return null; // Redirigido por el useEffect
+    return null;
   }
 
   return (
@@ -134,6 +209,18 @@ export default function DashboardPage() {
         <Barra_navegacion />
 
         <main className="max-w-7xl mx-auto px-2 sm:px-3 md:px-4 py-4 sm:py-6 md:py-12">
+          {/* Mensajes de error/éxito */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-200 rounded">
+              {error}
+            </div>
+          )}
+          {exito && (
+            <div className="mb-6 p-4 bg-green-900/50 border border-green-700 text-green-200 rounded">
+              {exito}
+            </div>
+          )}
+
           {/* Título y bienvenida */}
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-[#f0d9b5] font-permanent mb-2">
@@ -198,8 +285,8 @@ export default function DashboardPage() {
                       href="/admin/tokens"
                       className="block bg-[#0a0c0e] border border-[#8b6f4c] p-3 hover:border-[#f0d9b5] transition-colors"
                     >
-                      <p className="text-[#f0d9b5] font-bold">🔑 Tokens de Invitación Y Usuarios</p>
-                      <p className="text-[#8b6f4c] text-xs mt-1">Genera y administra tokens y Usuarios</p>
+                      <p className="text-[#f0d9b5] font-bold">🔑 Tokens de Invitación y Usuarios</p>
+                      <p className="text-[#8b6f4c] text-xs mt-1">Genera y administra tokens y usuarios</p>
                     </Link>
                   </div>
                 </div>
@@ -212,7 +299,7 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-[#1a1f23]/80 border border-[#8b6f4c] p-4 text-center backdrop-blur-sm">
                   <p className="text-2xl font-bold text-[#f0d9b5]">{stats.totalPersonajes}</p>
-                  <p className="text-[10px] text-[#8b6f4c] uppercase">Personajes</p>
+                  <p className="text-[10px] text-[#8b6f4c] uppercase">Mis Personajes</p>
                 </div>
                 <div className="bg-[#1a1f23]/80 border border-[#8b6f4c] p-4 text-center backdrop-blur-sm">
                   <p className="text-2xl font-bold text-[#f0d9b5]">{stats.nivel60}</p>
@@ -279,7 +366,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Lista de personajes */}
+              {/* Lista de mis personajes */}
               <div className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-6 backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-[#f0d9b5] font-permanent border-b border-[#8b6f4c] pb-2">
@@ -343,32 +430,225 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-
-              {/* Acciones rápidas */}
-              <div className="grid grid-cols-2 gap-4">
-                <Link
-                  href="/personajes"
-                  className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-4 text-center hover:border-[#f0d9b5] transition-colors backdrop-blur-sm"
-                >
-                  <p className="text-2xl mb-2">⚔️</p>
-                  <p className="text-[#f0d9b5] font-bold">Gestionar Personajes</p>
-                  <p className="text-[#8b6f4c] text-xs mt-1">Crea y edita tus personajes</p>
-                </Link>
-                <Link
-                  href="/progreso"
-                  className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-4 text-center hover:border-[#f0d9b5] transition-colors backdrop-blur-sm"
-                >
-                  <p className="text-2xl mb-2">📊</p>
-                  <p className="text-[#f0d9b5] font-bold">Ver Progreso</p>
-                  <p className="text-[#8b6f4c] text-xs mt-1">Estadísticas de la hermandad</p>
-                </Link>
-              </div>
             </div>
+          </div>
+
+          {/* Sección para Generales y Oficiales: Todos los personajes de la hermandad */}
+          {(usuario.rango === 'General' || usuario.rango === 'Oficial') && (
+            <div className="mt-8 bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-6 backdrop-blur-sm">
+              <h2 className="text-2xl font-bold text-[#f0d9b5] mb-4 font-permanent border-b-2 border-[#8b6f4c] pb-2">
+                ⚔️ TODOS LOS PERSONAJES DE LA HERMANDAD ({todosPersonajes.length})
+              </h2>
+
+              {/* Filtros */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <div>
+                  <label className="block text-[#c4aa7d] text-xs mb-1">Buscar por nombre</label>
+                  <input
+                    type="text"
+                    value={filtroNombre}
+                    onChange={(e) => {
+                      setFiltroNombre(e.target.value);
+                      setPaginaActual(1);
+                    }}
+                    placeholder="Nombre del personaje..."
+                    className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#c4aa7d] text-xs mb-1">Filtrar por rango</label>
+                  <select
+                    value={filtroRango}
+                    onChange={(e) => {
+                      setFiltroRango(e.target.value);
+                      setPaginaActual(1);
+                    }}
+                    className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] px-3 py-2 text-sm"
+                  >
+                    <option value="">Todos los rangos</option>
+                    {rangosUnicos.map(rango => (
+                      <option key={rango} value={rango}>{rango}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[#c4aa7d] text-xs mb-1">Filtrar por clase</label>
+                  <select
+                    value={filtroClase}
+                    onChange={(e) => {
+                      setFiltroClase(e.target.value);
+                      setPaginaActual(1);
+                    }}
+                    className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] px-3 py-2 text-sm"
+                  >
+                    <option value="">Todas las clases</option>
+                    {clasesUnicas.map(clase => (
+                      <option key={clase} value={clase}>{clase}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={() => {
+                      setFiltroNombre('');
+                      setFiltroRango('');
+                      setFiltroClase('');
+                      setPaginaActual(1);
+                    }}
+                    className="w-full bg-[#8b6f4c] px-4 py-2 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors text-sm"
+                  >
+                    LIMPIAR FILTROS
+                  </button>
+                </div>
+              </div>
+
+              {personajesFiltrados.length === 0 ? (
+                <div className="bg-[#0a0c0e] border border-[#8b6f4c] p-8 text-center">
+                  <p className="text-[#8b6f4c]">No se encontraron personajes con esos filtros.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Grid de personajes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {personajesPaginados.map((personaje) => (
+                      <div
+                        key={personaje.id}
+                        className="bg-[#0a0c0e] border-2 border-[#8b6f4c] p-3 hover:border-[#f0d9b5] transition-colors"
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="w-10 h-10 bg-[#1a1f23] border border-[#8b6f4c] rounded overflow-hidden flex-shrink-0">
+                            <Image
+                              src={getIconoClase(personaje.clase)}
+                              alt={personaje.clase}
+                              width={40}
+                              height={40}
+                              className="object-contain p-0.5"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-[#f0d9b5] font-bold text-sm truncate">
+                                {personaje.nombre_personaje}
+                              </p>
+                              <span className="text-[8px] bg-[#8b6f4c] text-[#0a0c0e] px-1 py-0.5 font-bold whitespace-nowrap">
+                                Nv.{personaje.nivel}
+                              </span>
+                            </div>
+                            <p className="text-[#c4aa7d] text-[10px] truncate">
+                              {personaje.raza} • {personaje.clase}
+                            </p>
+                            <p className="text-[#8b6f4c] text-[8px] mt-1">
+                              Dueño: {personaje.nombre_usuario || 'Desconocido'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Selector de rango (solo para Generales) */}
+                        {usuario.rango === 'General' && (
+                          <div className="mt-3 pt-2 border-t border-[#8b6f4c]">
+                            <label className="block text-[#c4aa7d] text-[8px] mb-1">Cambiar rango</label>
+                            <select
+                              value={personaje.rango}
+                              onChange={(e) => {
+                                setPersonajeSeleccionado(personaje);
+                                setNuevoRango(e.target.value);
+                                setModalAbierto(true);
+                              }}
+                              className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] text-[10px] px-2 py-1"
+                            >
+                              <option value="General">General</option>
+                              <option value="Oficial">Oficial</option>
+                              <option value="Miembro">Miembro</option>
+                              <option value="Aspirante">Aspirante</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Paginación */}
+                  {totalPaginas > 1 && (
+                    <div className="flex justify-center items-center space-x-2 mt-6">
+                      <button
+                        onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
+                        disabled={paginaActual === 1}
+                        className="w-8 h-8 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ←
+                      </button>
+                      <span className="text-[#c4aa7d] text-sm">
+                        Página {paginaActual} de {totalPaginas}
+                      </span>
+                      <button
+                        onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
+                        disabled={paginaActual === totalPaginas}
+                        className="w-8 h-8 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        →
+                      </button>
+                    </div>
+                  )}
+
+                  <p className="text-[#8b6f4c] text-xs mt-4 text-center">
+                    Mostrando {personajesPaginados.length} de {personajesFiltrados.length} personajes
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Acciones rápidas */}
+          <div className="mt-8 grid grid-cols-2 gap-4">
+            <Link
+              href="/personajes"
+              className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-4 text-center hover:border-[#f0d9b5] transition-colors backdrop-blur-sm"
+            >
+              <p className="text-2xl mb-2">⚔️</p>
+              <p className="text-[#f0d9b5] font-bold">Gestionar Personajes</p>
+              <p className="text-[#8b6f4c] text-xs mt-1">Crea y edita tus personajes</p>
+            </Link>
+            <Link
+              href="/progreso"
+              className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-4 text-center hover:border-[#f0d9b5] transition-colors backdrop-blur-sm"
+            >
+              <p className="text-2xl mb-2">📊</p>
+              <p className="text-[#f0d9b5] font-bold">Ver Progreso</p>
+              <p className="text-[#8b6f4c] text-xs mt-1">Estadísticas de la hermandad</p>
+            </Link>
           </div>
         </main>
 
         <Footer />
       </div>
+
+      {/* Modal para confirmar cambio de rango */}
+      {modalAbierto && personajeSeleccionado && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1f23] border-4 border-[#8b6f4c] p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-[#f0d9b5] mb-4">
+              Cambiar rango de {personajeSeleccionado.nombre_personaje}
+            </h3>
+            <p className="text-[#c4aa7d] text-sm mb-4">
+              ¿Estás seguro de que quieres cambiar el rango a <span className="font-bold">{nuevoRango}</span>?
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={cambiarRangoPersonaje}
+                className="flex-1 bg-[#8b6f4c] py-3 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors"
+              >
+                CONFIRMAR
+              </button>
+              <button
+                onClick={() => setModalAbierto(false)}
+                className="flex-1 border-2 border-[#8b6f4c] py-3 text-[#c4aa7d] hover:bg-[#2a2f33] transition-colors"
+              >
+                CANCELAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Efectos de borde */}
       <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-32 bg-gradient-to-t from-[#0a0c0e] to-transparent z-10"></div>
