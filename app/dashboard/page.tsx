@@ -198,8 +198,8 @@ export default function DashboardPage() {
                       href="/admin/tokens"
                       className="block bg-[#0a0c0e] border border-[#8b6f4c] p-3 hover:border-[#f0d9b5] transition-colors"
                     >
-                      <p className="text-[#f0d9b5] font-bold">🔑 Tokens de Invitación</p>
-                      <p className="text-[#8b6f4c] text-xs mt-1">Genera y administra tokens</p>
+                      <p className="text-[#f0d9b5] font-bold">🔑 Tokens de Invitación Y Usuarios</p>
+                      <p className="text-[#8b6f4c] text-xs mt-1">Genera y administra tokens y Usuarios</p>
                     </Link>
                   </div>
                 </div>
