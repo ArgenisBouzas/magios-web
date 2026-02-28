@@ -1,3 +1,4 @@
+// app/api/admin/tokens/route.ts
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { generarTokenUnico } from '@/lib/utils/tokens';
@@ -15,8 +16,15 @@ interface TokenInvitacion {
   nombre_usuario?: string;
 }
 
+interface JWTPayload {
+  id: number;
+  nombre_usuario: string;
+  rango: string;
+  [key: string]: unknown;
+}
+
 // Función para verificar si el usuario es admin
-async function verificarAdmin(): Promise<{ autorizado: boolean; error?: Response }> {
+async function verificarAdmin(): Promise<{ autorizado: boolean; payload?: JWTPayload; error?: Response }> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
@@ -46,7 +54,10 @@ async function verificarAdmin(): Promise<{ autorizado: boolean; error?: Response
     const secret = new TextEncoder().encode(jwtSecret);
     const { payload } = await jwtVerify(token, secret);
     
-    if (payload.rango !== 'General' && payload.rango !== 'Oficial') {
+    // Verificar que el payload tiene la estructura esperada
+    const userPayload = payload as unknown as JWTPayload;
+    
+    if (userPayload.rango !== 'General' && userPayload.rango !== 'Oficial') {
       return { 
         autorizado: false, 
         error: NextResponse.json(
@@ -56,7 +67,7 @@ async function verificarAdmin(): Promise<{ autorizado: boolean; error?: Response
       };
     }
 
-    return { autorizado: true };
+    return { autorizado: true, payload: userPayload };
   } catch (error) {
     console.error('Error verificando admin:', error);
     return { 
@@ -99,30 +110,36 @@ export async function GET() {
 // POST: Generar nuevos tokens
 export async function POST(request: Request) {
   try {
+    // Usar la misma función verificarAdmin que ya valida el token
     const verificado = await verificarAdmin();
     if (!verificado.autorizado) {
       return verificado.error;
     }
 
+    // Ahora tenemos el payload con seguridad
+    const payload = verificado.payload!;
+    
     const body = await request.json();
     const { cantidad = 1, email_destino = null, dias_expiracion = 7 } = body;
 
-    if (cantidad > 50) {
+    // Validar cantidad
+    if (cantidad < 1 || cantidad > 50) {
       return NextResponse.json(
-        { error: 'No se pueden generar más de 50 tokens a la vez' },
+        { error: 'La cantidad debe estar entre 1 y 50' },
         { status: 400 }
       );
     }
 
-    const tokens: TokenInvitacion[] = [];
+    const tokens = [];
 
     for (let i = 0; i < cantidad; i++) {
-      const token = generarTokenUnico();
+      const tokenGenerado = generarTokenUnico();
       const result = await query(
-        `INSERT INTO tokens_invitacion (token, email_destino, fecha_expiracion)
-         VALUES ($1, $2, NOW() + $3::interval)
+        `INSERT INTO tokens_invitacion 
+         (token, email_destino, fecha_expiracion, creado_por) 
+         VALUES ($1, $2, NOW() + $3::interval, $4) 
          RETURNING *`,
-        [token, email_destino, `${dias_expiracion} days`]
+        [tokenGenerado, email_destino, `${dias_expiracion} days`, payload.id]
       );
       tokens.push(result.rows[0]);
     }
