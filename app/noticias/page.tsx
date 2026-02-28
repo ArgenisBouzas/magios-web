@@ -1,344 +1,411 @@
 // app/noticias/page.tsx
-import Image from "next/image";
-import Link from "next/link";
-import Header_secundario from "../components/layout/Header_secundario";
-import Barra_navegacion from "../components/layout/Barra_navegacion";
-import Footer from "../components/layout/Footer";
+'use client';
 
-// Datos de ejemplo de noticias (se mantienen igual)
-const noticias = [
-  {
-    id: 1,
-    titulo: "¡Ragnaros ha caído de nuevo!",
-    fecha: "25/02/2024",
-    autor: "Thraxx",
-    categoria: "Raid",
-    imagen: "/noticias/ragnaros.jpg",
-    resumen: "Nuestra raid team ha derrotado a Ragnaros por décima vez esta temporada. Gran trabajo de todos los participantes.",
-    contenido: "Después de una intensa batalla en el corazón de Molten Core, nuestra hermandad ha logrado derrotar al Señor del Fuego una vez más. La coordinación y el esfuerzo de todos los miembros fueron clave para esta victoria. Mención especial a nuestros tanks por aguantar los golpes del elemental y a los healers por mantenernos con vida. ¡Seguimos sumando experiencia y loot para futuros desafíos!",
-    comentarios: 12,
-    reacciones: 45,
-    destacada: true
-  },
-  {
-    id: 2,
-    titulo: "Nuevo recluta: ¡Bienvenido Magni!",
-    fecha: "23/02/2024",
-    autor: "Elyndra",
-    categoria: "Miembros",
-    imagen: "/noticias/recluta.jpg",
-    resumen: "Un nuevo guerrero enano se une a nuestras filas. ¡Démosle la bienvenida!",
-    contenido: "Nos complace anunciar la incorporación de Magni, un experimentado guerrero enano que viene a reforzar nuestras líneas del frente. Con experiencia previa en varias hermandades y un equipo decente, estamos seguros de que será un gran aporte para nuestros raids. ¡Bienvenido a la familia, Magni!",
-    comentarios: 8,
-    reacciones: 32,
-    destacada: false
-  },
-  {
-    id: 3,
-    titulo: "Cambios en el horario de raids",
-    fecha: "20/02/2024",
-    autor: "Morrigan",
-    categoria: "Anuncio",
-    imagen: "/noticias/horario.jpg",
-    resumen: "Ajustamos los horarios para adaptarnos mejor a la disponibilidad de todos.",
-    contenido: "Después de recoger vuestras opiniones, hemos decidido ajustar los horarios de los raids. A partir de la próxima semana, los raids de Molten Core serán los martes y jueves a las 21:00, mientras que Blackwing Lair se mantendrá los sábados a las 20:00. Por favor, confirmad vuestra disponibilidad en el canal de Discord.",
-    comentarios: 15,
-    reacciones: 28,
-    destacada: true
-  },
-  {
-    id: 4,
-    titulo: "Primer Binding de Thunderfury",
-    fecha: "18/02/2024",
-    autor: "Grommash",
-    categoria: "Logro",
-    imagen: "/noticias/thunderfury.jpg",
-    resumen: "¡Conseguimos nuestro primer Binding! El camino hacia Thunderfury comienza.",
-    contenido: "Esta semana tuvimos una gran sorpresa en Molten Core: ¡dropó el Binding izquierdo de Thunderfury! Ha sido asignado a nuestro querido tank principal, Thraxx, quien ya está recolectando los materiales para forjar esta legendaria arma. ¡Enhorabuena y a seguir farmeando el otro Binding!",
-    comentarios: 24,
-    reacciones: 67,
-    destacada: true
-  },
-  {
-    id: 5,
-    titulo: "Guía de Zul'Gurub para principiantes",
-    fecha: "15/02/2024",
-    autor: "Magnus",
-    categoria: "Guía",
-    imagen: "/noticias/zg-guide.jpg",
-    resumen: "Compartimos una guía completa para nuevos miembros que quieran unirse a ZG.",
-    contenido: "Hemos preparado una guía detallada de Zul'Gurub para aquellos que aún no han tenido oportunidad de visitar esta raid. Incluye estrategias para cada jefe, asignación de roles y consejos para evitar las mecánicas más peligrosas. La encontraréis en el canal de recursos de Discord. ¡Estudiadla antes de nuestro próximo raid!",
-    comentarios: 7,
-    reacciones: 19,
-    destacada: false
-  },
-  {
-    id: 6,
-    titulo: "Celebración del aniversario de la hermandad",
-    fecha: "10/02/2024",
-    autor: "Zul'jin",
-    categoria: "Evento",
-    imagen: "/noticias/aniversario.jpg",
-    resumen: "¡Hace un año que fundamos esta hermandad! Lo celebraremos con eventos especiales.",
-    contenido: "El próximo sábado celebramos nuestro primer aniversario como hermandad. Tendremos eventos especiales toda la tarde: carreras de monturas en Barrens, duelos amistosos en Gurubashi, y por supuesto, un raid de MC con sorteo de loot entre todos los asistentes. ¡No faltéis!",
-    comentarios: 31,
-    reacciones: 89,
-    destacada: true
-  }
-];
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import Header_secundario from '../components/layout/Header_secundario';
+import Barra_navegacion from '../components/layout/Barra_navegacion';
+import Footer from '../components/layout/Footer';
+import TarjetaNoticia from '../components/noticias/TarjetaNoticia';
 
-// Categorías para filtros
-const categorias = [
-  "Todas",
-  "Raid",
-  "Miembros",
-  "Anuncio",
-  "Logro",
-  "Guía",
-  "Evento"
-];
+interface Noticia {
+  id: number;
+  titulo: string;
+  contenido: string;
+  fecha_publicacion: string;
+  autor_nombre: string;
+  autor_rango: string;
+  vistas: number;
+  destacada: boolean;
+  categorias: Array<{
+    id: number;
+    nombre: string;
+    color: string;
+  }>;
+  imagenes?: string[];
+}
+
+interface Categoria {
+  id: number;
+  nombre: string;
+  tipo: string;
+  color: string; // 👈 AÑADIR ESTA LÍNEA
+}
+
+interface Usuario {
+  id: number;
+  nombre_usuario: string;
+  email: string;
+  rango: string;
+}
+
+interface ErrorResponse {
+  error?: string;
+  message?: string;
+}
 
 export default function NoticiasPage() {
+  const router = useRouter();
+  const [noticias, setNoticias] = useState<Noticia[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<string[]>([]);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+
+  // Estado para el modal de eliminación
+  const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
+  const [noticiaAEliminar, setNoticiaAEliminar] = useState<Noticia | null>(null);
+
+  useEffect(() => {
+    fetchUsuario();
+    fetchCategorias();
+  }, []);
+
+  useEffect(() => {
+    fetchNoticias();
+  }, [categoriasSeleccionadas, paginaActual]);
+
+  const fetchUsuario = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        setUsuario(data.usuario);
+      }
+    } catch (error) {
+      console.error('Error al obtener usuario:', error);
+    }
+  };
+
+  const fetchCategorias = async () => {
+    try {
+      const res = await fetch('/api/noticias/categorias');
+      if (res.ok) {
+        const data = await res.json();
+        setCategorias(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error al cargar categorías:', error);
+    }
+  };
+
+  const fetchNoticias = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      let url = `/api/noticias?pagina=${paginaActual}`;
+      
+      if (categoriasSeleccionadas.length > 0) {
+        categoriasSeleccionadas.forEach(cat => {
+          url += `&categoria=${encodeURIComponent(cat)}`;
+        });
+      }
+      
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al cargar noticias');
+      }
+      
+      const noticiasConImagenes = data.noticias.map((noticia: Noticia) => ({
+        ...noticia,
+        imagenes: extraerImagenes(noticia.contenido)
+      }));
+      
+      setNoticias(noticiasConImagenes || []);
+      setTotalPaginas(data.totalPaginas || 1);
+    } catch (error: unknown) {
+      let errorMessage = 'Error al cargar las noticias';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String((error as { message: unknown }).message);
+      }
+      console.error('Error al cargar noticias:', error);
+      setError(errorMessage);
+      setNoticias([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para extraer URLs de imágenes del contenido
+  const extraerImagenes = (contenido: string): string[] => {
+    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp))/gi;
+    return contenido.match(urlRegex) || [];
+  };
+
+  const toggleCategoria = (categoria: string) => {
+    setCategoriasSeleccionadas(prev => {
+      if (prev.includes(categoria)) {
+        return prev.filter(c => c !== categoria);
+      } else {
+        return [...prev, categoria];
+      }
+    });
+    setPaginaActual(1);
+  };
+
+  const limpiarFiltros = () => {
+    setCategoriasSeleccionadas([]);
+    setPaginaActual(1);
+  };
+
+  const eliminarNoticia = async () => {
+    if (!noticiaAEliminar) return;
+
+    try {
+      const res = await fetch(`/api/noticias/${noticiaAEliminar.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        const data = await res.json() as ErrorResponse;
+        throw new Error(data.error || 'Error al eliminar noticia');
+      }
+
+      setNoticias(noticias.filter(n => n.id !== noticiaAEliminar.id));
+      setModalEliminarAbierto(false);
+      setNoticiaAEliminar(null);
+    } catch (error: unknown) {
+      let errorMessage = 'Error al eliminar noticia';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      console.error('Error al eliminar noticia:', error);
+      setError(errorMessage);
+    }
+  };
+
+  const puedeModerar = usuario && (usuario.rango === 'General' || usuario.rango === 'Oficial');
+  const puedeEliminar = usuario && usuario.rango === 'General';
+
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Fondo del Portal Oscuro (igual que en login) */}
       <div className="absolute inset-0">
-        <Image
-          src="/portal-oscuro.png"
-          alt="Portal Oscuro"
-          fill
-          className="object-cover -z-10"
-          priority
-        />
-        <Image
-          src="/magios.gif"
-          alt="Portal Oscuro"
-          fill
-          className="object-cover -z-11"
-          priority
-          unoptimized
-        />
-        {/* Overlay con degradado para mejorar legibilidad */}
+        <Image src="/portal-oscuro.png" alt="Portal Oscuro" fill className="object-cover -z-10" priority />
+        <Image src="/magios.gif" alt="Portal Oscuro" fill className="object-cover -z-11" priority unoptimized />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c0e]/90 via-[#0a0c0e]/70 to-[#0a0c0e]/90"></div>
-        
-        {/* Partículas mágicas (efecto del portal) */}
-        <div className="absolute inset-0 opacity-20 md:opacity-30">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-[#00ffff] rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-[#ff00ff] rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
-        </div>
       </div>
 
-      {/* Contenido principal con z-index para estar sobre el fondo */}
       <div className="relative z-10 min-h-screen text-[#c4aa7d]">
-        {/* Header con banner estilo WoW - responsive */}
-        <Header_secundario/>
+        <Header_secundario />
+        <Barra_navegacion />
 
-        {/* Barra de navegación - responsive con scroll */}
-        <Barra_navegacion/>
-
-        {/* Contenido principal */}
         <main className="max-w-7xl mx-auto px-2 sm:px-3 md:px-4 py-4 sm:py-6 md:py-12">
-          {/* Título de la página */}
-          <div className="mb-4 sm:mb-6 md:mb-10">
-            <h2 className="text-xl sm:text-2xl md:text-4xl font-bold text-[#f0d9b5] border-b-2 border-[#8b6f4c] pb-1 sm:pb-2 inline-block font-permanent">
-              NOTICIAS
-            </h2>
-            <p className="text-[#8b6f4c] mt-1 sm:mt-2 text-xs sm:text-sm md:text-lg">
-              Últimas novedades de la hermandad
-            </p>
-          </div>
-
-          {/* Filtros y búsqueda - responsive */}
-          <div className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-2 sm:p-3 md:p-4 mb-4 sm:mb-6 md:mb-8 backdrop-blur-sm">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-start sm:items-center justify-between">
-              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                <select className="bg-[#0a0c0e]/80 border border-[#8b6f4c] text-[#c4aa7d] px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 text-xs sm:text-sm focus:outline-none focus:border-[#f0d9b5] flex-1 sm:flex-initial backdrop-blur-sm">
-                  {categorias.map((cat) => (
-                    <option key={cat}>{cat}</option>
-                  ))}
-                </select>
-                
-                <select className="bg-[#0a0c0e]/80 border border-[#8b6f4c] text-[#c4aa7d] px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 text-xs sm:text-sm focus:outline-none focus:border-[#f0d9b5] flex-1 sm:flex-initial backdrop-blur-sm">
-                  <option>Recientes</option>
-                  <option>Antiguos</option>
-                  <option>Comentados</option>
-                </select>
-              </div>
-              
-              <div className="relative w-full sm:w-auto">
-                <input 
-                  type="text" 
-                  placeholder="Buscar..."
-                  className="w-full sm:w-auto bg-[#0a0c0e]/80 border border-[#8b6f4c] text-[#c4aa7d] px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 pr-8 text-xs sm:text-sm focus:outline-none focus:border-[#f0d9b5] backdrop-blur-sm"
-                />
-                <span className="absolute right-2 top-1.5 sm:top-2 text-[#8b6f4c] text-xs sm:text-sm">🔍</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Noticia destacada - responsive */}
-          {noticias.filter(n => n.destacada)[0] && (
-            <div className="mb-6 sm:mb-8 md:mb-12 relative">
-              <div className="absolute -top-2 sm:-top-3 left-2 sm:left-4 bg-[#8b6f4c] text-[#0a0c0e] px-2 sm:px-4 py-0.5 sm:py-1 text-[10px] sm:text-sm font-bold uppercase tracking-wider border-2 border-[#f0d9b5] z-10">
-                ⭐ DESTACADA
-              </div>
-              <div className="bg-gradient-to-r from-[#1a1f23]/80 to-[#2a2f33]/80 border-2 border-[#8b6f4c] p-3 sm:p-4 md:p-6 pt-4 sm:pt-6 md:pt-8 backdrop-blur-sm">
-                <div className="flex flex-col md:flex-row gap-3 sm:gap-4 md:gap-6">
-                  <div className="md:w-1/3">
-                    <div className="aspect-video bg-[#0a0c0e]/80 border-2 border-[#8b6f4c] flex items-center justify-center backdrop-blur-sm">
-                      <span className="text-3xl sm:text-4xl md:text-6xl opacity-30">📰</span>
-                    </div>
-                  </div>
-                  <div className="md:w-2/3">
-                    <div className="flex flex-wrap items-center gap-1 sm:gap-2 md:gap-3 mb-2 sm:mb-3">
-                      <span className="bg-[#8b6f4c] text-[#0a0c0e] text-[8px] sm:text-xs px-1 sm:px-2 py-0.5 font-bold">
-                        {noticias.filter(n => n.destacada)[0].categoria}
-                      </span>
-                      <span className="text-[8px] sm:text-xs text-[#8b6f4c]">
-                        {noticias.filter(n => n.destacada)[0].fecha}
-                      </span>
-                      <span className="text-[8px] sm:text-xs text-[#8b6f4c]">
-                        Por: {noticias.filter(n => n.destacada)[0].autor}
-                      </span>
-                    </div>
-                    <h3 className="text-sm sm:text-base md:text-2xl font-bold text-[#f0d9b5] mb-2 sm:mb-3">
-                      {noticias.filter(n => n.destacada)[0].titulo}
-                    </h3>
-                    <p className="text-xs sm:text-sm md:text-base text-[#c4aa7d] mb-3 sm:mb-4 line-clamp-3 sm:line-clamp-none">
-                      {noticias.filter(n => n.destacada)[0].contenido}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-sm">
-                      <span className="text-[#8b6f4c]">💬 {noticias.filter(n => n.destacada)[0].comentarios}</span>
-                      <span className="text-[#8b6f4c]">❤️ {noticias.filter(n => n.destacada)[0].reacciones}</span>
-                      <button className="text-[#f0d9b5] hover:underline ml-auto text-xs sm:text-sm">
-                        Leer más →
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Grid de noticias - 1 columna en móvil, 2 en tablet, 3 en desktop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-8 sm:mb-10 md:mb-12">
-            {noticias.map((noticia) => (
-              <div 
-                key={noticia.id}
-                className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] overflow-hidden hover:border-[#f0d9b5] transition-all duration-300 group backdrop-blur-sm"
-              >
-                {/* Imagen de la noticia */}
-                <div className="relative h-28 sm:h-32 md:h-40 bg-gradient-to-br from-[#2a2f33]/80 to-[#1a1f23]/80 border-b-2 border-[#8b6f4c]">
-                  <div className="absolute inset-0 opacity-20" style={{
-                    backgroundImage: "url('data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23c4aa7d' fill-opacity='0.1'%3E%3Cpath d='M0 0h40v40H0V0z'/%3E%3C/g%3E%3C/svg%3E')"
-                  }}></div>
-                  <div className="absolute top-1 left-1 sm:top-2 sm:left-2 bg-[#8b6f4c] text-[#0a0c0e] text-[8px] sm:text-xs px-1 sm:px-2 py-0.5 font-bold z-10">
-                    {noticia.categoria}
-                  </div>
-                  <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 text-[8px] sm:text-xs text-[#8b6f4c] z-10">
-                    {noticia.fecha}
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl sm:text-4xl md:text-5xl opacity-30 group-hover:opacity-50 transition-opacity">
-                      {noticia.categoria === 'Raid' && '⚔️'}
-                      {noticia.categoria === 'Miembros' && '👥'}
-                      {noticia.categoria === 'Anuncio' && '📢'}
-                      {noticia.categoria === 'Logro' && '🏆'}
-                      {noticia.categoria === 'Guía' && '📚'}
-                      {noticia.categoria === 'Evento' && '🎉'}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Contenido de la noticia */}
-                <div className="p-2 sm:p-3 md:p-4">
-                  <h3 className="text-xs sm:text-sm md:text-lg font-bold text-[#f0d9b5] mb-1 sm:mb-2 line-clamp-2 group-hover:text-[#c4aa7d] transition-colors">
-                    {noticia.titulo}
-                  </h3>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-[#c4aa7d] mb-2 sm:mb-3 line-clamp-2">
-                    {noticia.resumen}
-                  </p>
-                  
-                  {/* Autor y estadísticas */}
-                  <div className="flex items-center justify-between text-[8px] sm:text-xs border-t border-[#8b6f4c] pt-2 sm:pt-3 mt-1 sm:mt-2">
-                    <span className="text-[#8b6f4c] truncate max-w-[60px] sm:max-w-none">
-                      {noticia.autor}
-                    </span>
-                    <div className="flex items-center gap-1 sm:gap-3">
-                      <span className="text-[#8b6f4c]" title="Comentarios">
-                        💬 {noticia.comentarios}
-                      </span>
-                      <span className="text-[#8b6f4c]" title="Reacciones">
-                        ❤️ {noticia.reacciones}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Botón leer más */}
-                  <button className="w-full mt-2 sm:mt-3 text-left text-[10px] sm:text-xs md:text-sm text-[#f0d9b5] hover:text-[#c4aa7d] transition-colors">
-                    Leer más →
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Paginación - responsive */}
-          <div className="flex justify-center items-center space-x-1 sm:space-x-2">
-            <button className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-xs sm:text-sm md:text-base backdrop-blur-sm">
-              ←
-            </button>
-            <button className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 border-2 border-[#8b6f4c] bg-[#8b6f4c] text-[#0a0c0e] font-bold text-xs sm:text-sm md:text-base">
-              1
-            </button>
-            <button className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-xs sm:text-sm md:text-base backdrop-blur-sm">
-              2
-            </button>
-            <button className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-xs sm:text-sm md:text-base backdrop-blur-sm">
-              3
-            </button>
-            <span className="text-[#8b6f4c] text-xs sm:text-sm">...</span>
-            <button className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-xs sm:text-sm md:text-base backdrop-blur-sm">
-              5
-            </button>
-            <button className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-xs sm:text-sm md:text-base backdrop-blur-sm">
-              →
-            </button>
-          </div>
-
-          {/* Suscripción a newsletter - responsive */}
-          <div className="mt-8 sm:mt-12 md:mt-16 bg-gradient-to-r from-[#1a1f23]/80 to-[#0a0c0e]/80 border-2 border-[#8b6f4c] p-3 sm:p-4 md:p-8 backdrop-blur-sm">
-            <div className="text-center mb-3 sm:mb-4 md:mb-6">
-              <h3 className="text-sm sm:text-base md:text-2xl font-bold text-[#f0d9b5] mb-1 sm:mb-2">
-                📬 ¿Noticias en tu correo?
-              </h3>
-              <p className="text-[10px] sm:text-xs md:text-base text-[#8b6f4c]">
-                Suscríbete para recibir novedades
+          {/* Header con botones de acción */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-[#f0d9b5] font-permanent">
+                NOTICIAS DE LA HERMANDAD
+              </h1>
+              <p className="text-[#8b6f4c] text-sm mt-1">
+                Mantente al día con las últimas novedades
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row max-w-md mx-auto gap-2 sm:gap-0">
-              <input 
-                type="email" 
-                placeholder="Tu email"
-                className="flex-1 bg-[#0a0c0e]/80 border-2 border-[#8b6f4c] sm:border-r-0 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-[#f0d9b5] placeholder-[#4a3a28] focus:outline-none focus:border-[#f0d9b5] backdrop-blur-sm"
-              />
-              <button className="bg-[#8b6f4c] px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors border-2 border-[#8b6f4c] sm:border-l-0 whitespace-nowrap">
-                Suscribirme
-              </button>
+            <div className="flex gap-3">
+              {puedeModerar && (
+                <Link
+                  href="/noticias/admin"
+                  className="bg-[#2a2f33] border-2 border-[#8b6f4c] px-4 py-2 text-sm text-[#c4aa7d] font-bold hover:bg-[#3a3f43] hover:border-[#f0d9b5] transition-colors flex items-center gap-2"
+                >
+                  ⚙️ MODERAR
+                </Link>
+              )}
+              
+              {usuario && (
+                <Link
+                  href="/noticias/crear"
+                  className="bg-[#8b6f4c] px-4 py-2 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors border-2 border-[#f0d9b5] flex items-center gap-2"
+                >
+                  <span className="text-xl">+</span>
+                  CREAR
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Filtros de categorías */}
+          <div className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+              <h2 className="text-sm font-bold text-[#f0d9b5]">
+                Filtrar por categorías:
+                {categoriasSeleccionadas.length > 0 && (
+                  <span className="ml-2 text-[#8b6f4c] font-normal">
+                    ({categoriasSeleccionadas.length} seleccionadas)
+                  </span>
+                )}
+              </h2>
+              
+              {categoriasSeleccionadas.length > 0 && (
+                <button
+                  onClick={limpiarFiltros}
+                  className="text-xs bg-[#2a2f33] border border-[#8b6f4c] px-3 py-1 text-[#c4aa7d] hover:bg-[#3a3f43] transition-colors"
+                >
+                  LIMPIAR FILTROS
+                </button>
+              )}
             </div>
             
-            <p className="text-center text-[8px] sm:text-xs text-[#4a3a28] mt-2 sm:mt-3 md:mt-4">
-              No compartimos tu email. Puedes darte de baja.
-            </p>
+            <div className="flex flex-wrap gap-2">
+              {categoriasSeleccionadas.length === 0 && (
+                <button
+                  className="px-3 py-1 text-xs border-2 border-[#f0d9b5] bg-[#8b6f4c] text-[#0a0c0e]"
+                >
+                  Todas
+                </button>
+              )}
+              
+              {categorias.map((cat) => {
+                const seleccionada = categoriasSeleccionadas.includes(cat.nombre);
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => toggleCategoria(cat.nombre)}
+                    className={`px-3 py-1 text-xs border-2 transition-all ${
+                      seleccionada
+                        ? 'border-[#f0d9b5] bg-[#8b6f4c] text-[#0a0c0e]'
+                        : 'border-[#8b6f4c] text-[#c4aa7d] hover:border-[#f0d9b5]'
+                    }`}
+                    style={{ 
+                      borderColor: seleccionada ? '#f0d9b5' : cat.color,
+                      backgroundColor: seleccionada ? '#8b6f4c' : 'transparent'
+                    }}
+                  >
+                    {cat.nombre}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Mensaje de error */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-200 rounded">
+              {error}
+            </div>
+          )}
+
+          {/* Grid de noticias */}
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-[#c4aa7d]">Cargando noticias...</p>
+            </div>
+          ) : noticias.length === 0 ? (
+            <div className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-12 text-center">
+              <p className="text-2xl mb-4">📰</p>
+              <p className="text-[#8b6f4c] text-lg">
+                {categoriasSeleccionadas.length > 0
+                  ? 'No hay noticias con las categorías seleccionadas'
+                  : 'No hay noticias publicadas aún'}
+              </p>
+              {usuario && (
+                <Link
+                  href="/noticias/crear"
+                  className="inline-block mt-4 bg-[#8b6f4c] px-4 py-2 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d]"
+                >
+                  Crear la primera noticia
+                </Link>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {noticias.map((noticia) => (
+                  <div key={noticia.id} className="relative group">
+                    <TarjetaNoticia noticia={noticia} />
+                    
+                    {puedeEliminar && (
+                      <button
+                        onClick={() => {
+                          setNoticiaAEliminar(noticia);
+                          setModalEliminarAbierto(true);
+                        }}
+                        className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                        title="Eliminar noticia"
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Paginación */}
+              {totalPaginas > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-8">
+                  <button
+                    onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                    disabled={paginaActual === 1}
+                    className="w-8 h-8 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors disabled:opacity-50"
+                  >
+                    ←
+                  </button>
+                  <span className="text-[#c4aa7d] text-sm">
+                    Página {paginaActual} de {totalPaginas}
+                  </span>
+                  <button
+                    onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                    disabled={paginaActual === totalPaginas}
+                    className="w-8 h-8 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors disabled:opacity-50"
+                  >
+                    →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </main>
 
-        {/* Footer */}
-        <Footer></Footer>
+        <Footer />
       </div>
 
-      {/* Efectos de borde del portal */}
+      {/* Modal de confirmación para eliminar noticia */}
+      {modalEliminarAbierto && noticiaAEliminar && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1f23] border-4 border-red-800 p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-red-400 mb-4">
+              ⚠️ Eliminar noticia
+            </h3>
+            <p className="text-[#c4aa7d] text-sm mb-2">
+              ¿Estás SEGURO de que quieres eliminar la noticia:
+            </p>
+            <p className="text-[#f0d9b5] font-bold mb-4">
+              "{noticiaAEliminar.titulo}"?
+            </p>
+            <p className="text-red-400 text-xs mb-6">
+              Esta acción no se puede deshacer. La noticia será eliminada permanentemente.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={eliminarNoticia}
+                className="flex-1 bg-red-700 py-3 text-white font-bold hover:bg-red-600 transition-colors"
+              >
+                ELIMINAR
+              </button>
+              <button
+                onClick={() => {
+                  setModalEliminarAbierto(false);
+                  setNoticiaAEliminar(null);
+                }}
+                className="flex-1 border-2 border-[#8b6f4c] py-3 text-[#c4aa7d] hover:bg-[#2a2f33] transition-colors"
+              >
+                CANCELAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-32 bg-gradient-to-t from-[#0a0c0e] to-transparent z-10"></div>
       <div className="absolute top-0 left-0 right-0 h-16 sm:h-32 bg-gradient-to-b from-[#0a0c0e] to-transparent z-10"></div>
     </div>
