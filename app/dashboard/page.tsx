@@ -54,6 +54,7 @@ export default function DashboardPage() {
   const [todosPersonajes, setTodosPersonajes] = useState<Personaje[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [exito, setExito] = useState('');
   const [stats, setStats] = useState({
     totalPersonajes: 0,
     nivel60: 0,
@@ -68,9 +69,13 @@ export default function DashboardPage() {
   const personajesPorPagina = 8;
 
   // Estado para modal de cambio de rango
-  const [modalAbierto, setModalAbierto] = useState(false);
+  const [modalRangoAbierto, setModalRangoAbierto] = useState(false);
   const [personajeSeleccionado, setPersonajeSeleccionado] = useState<Personaje | null>(null);
   const [nuevoRango, setNuevoRango] = useState('');
+
+  // Estado para modal de confirmación de eliminación
+  const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
+  const [personajeAEliminar, setPersonajeAEliminar] = useState<Personaje | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -142,7 +147,35 @@ export default function DashboardPage() {
       }
 
       setExito(`Rango de ${personajeSeleccionado.nombre_personaje} cambiado a ${nuevoRango}`);
-      setModalAbierto(false);
+      setModalRangoAbierto(false);
+      
+      // Recargar datos
+      await fetchDashboardData();
+      
+      setTimeout(() => setExito(''), 3000);
+    } catch (error: any) {
+      setError(error.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const eliminarPersonaje = async () => {
+    if (!personajeAEliminar) return;
+
+    try {
+      setError('');
+      const res = await fetch(`/api/personajes/${personajeAEliminar.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Error al eliminar personaje');
+      }
+
+      setExito(`Personaje ${personajeAEliminar.nombre_personaje} eliminado correctamente`);
+      setModalEliminarAbierto(false);
+      setPersonajeAEliminar(null);
       
       // Recargar datos
       await fetchDashboardData();
@@ -172,9 +205,6 @@ export default function DashboardPage() {
   // Obtener rangos únicos para filtro
   const rangosUnicos = [...new Set(todosPersonajes.map(p => p.rango))].sort();
   const clasesUnicas = [...new Set(todosPersonajes.map(p => p.clase))].sort();
-
-  // Estado para éxito
-  const [exito, setExito] = useState('');
 
   if (loading) {
     return (
@@ -393,34 +423,47 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-3">
                     {personajes.slice(0, 5).map((personaje) => (
-                      <Link
+                      <div
                         key={personaje.id}
-                        href={`/personajes/${personaje.id}`}
-                        className="block bg-[#0a0c0e] border border-[#8b6f4c] p-3 hover:border-[#f0d9b5] transition-colors"
+                        className="bg-[#0a0c0e] border border-[#8b6f4c] p-3 hover:border-[#f0d9b5] transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#1a1f23] border border-[#8b6f4c] rounded overflow-hidden">
-                            <Image
-                              src={getIconoClase(personaje.clase)}
-                              alt={personaje.clase}
-                              width={40}
-                              height={40}
-                              className="object-contain p-0.5"
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <p className="text-[#f0d9b5] font-bold">{personaje.nombre_personaje}</p>
-                              <span className="text-[8px] bg-[#8b6f4c] text-[#0a0c0e] px-1 py-0.5 font-bold">
-                                Nv.{personaje.nivel}
-                              </span>
+                          <Link href={`/personajes/${personaje.id}`} className="flex items-center gap-3 flex-1">
+                            <div className="w-10 h-10 bg-[#1a1f23] border border-[#8b6f4c] rounded overflow-hidden">
+                              <Image
+                                src={getIconoClase(personaje.clase)}
+                                alt={personaje.clase}
+                                width={40}
+                                height={40}
+                                className="object-contain p-0.5"
+                              />
                             </div>
-                            <p className="text-[10px] text-[#c4aa7d]">
-                              {personaje.raza} • {personaje.clase}
-                            </p>
-                          </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <p className="text-[#f0d9b5] font-bold">{personaje.nombre_personaje}</p>
+                                <span className="text-[8px] bg-[#8b6f4c] text-[#0a0c0e] px-1 py-0.5 font-bold">
+                                  Nv.{personaje.nivel}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-[#c4aa7d]">
+                                {personaje.raza} • {personaje.clase}
+                              </p>
+                            </div>
+                          </Link>
+                          
+                          {/* Botón eliminar personaje */}
+                          <button
+                            onClick={() => {
+                              setPersonajeAEliminar(personaje);
+                              setModalEliminarAbierto(true);
+                            }}
+                            className="bg-red-600/80 hover:bg-red-700 px-2 py-1 text-xs text-white rounded transition-colors"
+                            title="Eliminar personaje"
+                          >
+                            🗑️
+                          </button>
                         </div>
-                      </Link>
+                      </div>
                     ))}
                     {personajes.length > 5 && (
                       <p className="text-center text-[#8b6f4c] text-xs mt-2">
@@ -516,31 +559,47 @@ export default function DashboardPage() {
                         className="bg-[#0a0c0e] border-2 border-[#8b6f4c] p-3 hover:border-[#f0d9b5] transition-colors"
                       >
                         <div className="flex items-start gap-2">
-                          <div className="w-10 h-10 bg-[#1a1f23] border border-[#8b6f4c] rounded overflow-hidden flex-shrink-0">
-                            <Image
-                              src={getIconoClase(personaje.clase)}
-                              alt={personaje.clase}
-                              width={40}
-                              height={40}
-                              className="object-contain p-0.5"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <p className="text-[#f0d9b5] font-bold text-sm truncate">
-                                {personaje.nombre_personaje}
-                              </p>
-                              <span className="text-[8px] bg-[#8b6f4c] text-[#0a0c0e] px-1 py-0.5 font-bold whitespace-nowrap">
-                                Nv.{personaje.nivel}
-                              </span>
+                          <Link href={`/personajes/${personaje.id}`} className="flex items-start gap-2 flex-1">
+                            <div className="w-10 h-10 bg-[#1a1f23] border border-[#8b6f4c] rounded overflow-hidden flex-shrink-0">
+                              <Image
+                                src={getIconoClase(personaje.clase)}
+                                alt={personaje.clase}
+                                width={40}
+                                height={40}
+                                className="object-contain p-0.5"
+                              />
                             </div>
-                            <p className="text-[#c4aa7d] text-[10px] truncate">
-                              {personaje.raza} • {personaje.clase}
-                            </p>
-                            <p className="text-[#8b6f4c] text-[8px] mt-1">
-                              Dueño: {personaje.nombre_usuario || 'Desconocido'}
-                            </p>
-                          </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <p className="text-[#f0d9b5] font-bold text-sm truncate">
+                                  {personaje.nombre_personaje}
+                                </p>
+                                <span className="text-[8px] bg-[#8b6f4c] text-[#0a0c0e] px-1 py-0.5 font-bold whitespace-nowrap">
+                                  Nv.{personaje.nivel}
+                                </span>
+                              </div>
+                              <p className="text-[#c4aa7d] text-[10px] truncate">
+                                {personaje.raza} • {personaje.clase}
+                              </p>
+                              <p className="text-[#8b6f4c] text-[8px] mt-1">
+                                Dueño: {personaje.nombre_usuario || 'Desconocido'}
+                              </p>
+                            </div>
+                          </Link>
+
+                          {/* Botón eliminar (solo para Generales) */}
+                          {usuario.rango === 'General' && (
+                            <button
+                              onClick={() => {
+                                setPersonajeAEliminar(personaje);
+                                setModalEliminarAbierto(true);
+                              }}
+                              className="bg-red-600/80 hover:bg-red-700 px-1.5 py-1 text-[10px] text-white rounded transition-colors"
+                              title="Eliminar personaje"
+                            >
+                              🗑️
+                            </button>
+                          )}
                         </div>
 
                         {/* Selector de rango (solo para Generales) */}
@@ -552,7 +611,7 @@ export default function DashboardPage() {
                               onChange={(e) => {
                                 setPersonajeSeleccionado(personaje);
                                 setNuevoRango(e.target.value);
-                                setModalAbierto(true);
+                                setModalRangoAbierto(true);
                               }}
                               className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] text-[10px] px-2 py-1"
                             >
@@ -623,7 +682,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Modal para confirmar cambio de rango */}
-      {modalAbierto && personajeSeleccionado && (
+      {modalRangoAbierto && personajeSeleccionado && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1a1f23] border-4 border-[#8b6f4c] p-6 max-w-md w-full">
             <h3 className="text-xl font-bold text-[#f0d9b5] mb-4">
@@ -640,7 +699,44 @@ export default function DashboardPage() {
                 CONFIRMAR
               </button>
               <button
-                onClick={() => setModalAbierto(false)}
+                onClick={() => {
+                  setModalRangoAbierto(false);
+                  setPersonajeSeleccionado(null);
+                }}
+                className="flex-1 border-2 border-[#8b6f4c] py-3 text-[#c4aa7d] hover:bg-[#2a2f33] transition-colors"
+              >
+                CANCELAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para confirmar eliminación */}
+      {modalEliminarAbierto && personajeAEliminar && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1f23] border-4 border-red-800 p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-red-400 mb-4">
+              ⚠️ Eliminar personaje
+            </h3>
+            <p className="text-[#c4aa7d] text-sm mb-2">
+              ¿Estás SEGURO de que quieres eliminar a <span className="font-bold text-[#f0d9b5]">{personajeAEliminar.nombre_personaje}</span>?
+            </p>
+            <p className="text-red-400 text-xs mb-6">
+              Esta acción no se puede deshacer. El personaje será desactivado permanentemente.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={eliminarPersonaje}
+                className="flex-1 bg-red-700 py-3 text-white font-bold hover:bg-red-600 transition-colors"
+              >
+                ELIMINAR
+              </button>
+              <button
+                onClick={() => {
+                  setModalEliminarAbierto(false);
+                  setPersonajeAEliminar(null);
+                }}
                 className="flex-1 border-2 border-[#8b6f4c] py-3 text-[#c4aa7d] hover:bg-[#2a2f33] transition-colors"
               >
                 CANCELAR
