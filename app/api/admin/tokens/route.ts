@@ -54,7 +54,6 @@ async function verificarAdmin(): Promise<{ autorizado: boolean; payload?: JWTPay
     const secret = new TextEncoder().encode(jwtSecret);
     const { payload } = await jwtVerify(token, secret);
     
-    // Verificar que el payload tiene la estructura esperada
     const userPayload = payload as unknown as JWTPayload;
     
     if (userPayload.rango !== 'General' && userPayload.rango !== 'Oficial') {
@@ -80,7 +79,9 @@ async function verificarAdmin(): Promise<{ autorizado: boolean; payload?: JWTPay
   }
 }
 
-// GET: Obtener todos los tokens
+// GET: Obtener todos los tokens (VERSIÓN CORREGIDA SEGÚN TUS TIPOS)
+// app/api/admin/tokens/route.ts - GET CORREGIDO
+
 export async function GET() {
   try {
     const verificado = await verificarAdmin();
@@ -88,12 +89,29 @@ export async function GET() {
       return verificado.error;
     }
 
+    // ✅ CORREGIDO: Usar CASE para manejar valores no numéricos
     const result = await query(`
       SELECT 
-        t.*,
-        u.nombre_usuario
+        t.id,
+        t.token,
+        t.email_destino,
+        t.usado,
+        t.usado_por,
+        t.fecha_creacion,
+        t.fecha_expiracion,
+        t.creado_por,
+        CASE 
+          WHEN t.creado_por ~ '^[0-9]+$' THEN creador.nombre_usuario 
+          ELSE 'Sistema' 
+        END as creador_nombre,
+        usuario.nombre_usuario as nombre_usuario
       FROM tokens_invitacion t
-      LEFT JOIN usuarios u ON t.usado_por = u.id
+      LEFT JOIN usuarios creador ON 
+        CASE 
+          WHEN t.creado_por ~ '^[0-9]+$' THEN t.creado_por::integer = creador.id
+          ELSE false
+        END
+      LEFT JOIN usuarios usuario ON t.usado_por = usuario.id
       ORDER BY t.fecha_creacion DESC
     `);
 
@@ -107,22 +125,19 @@ export async function GET() {
   }
 }
 
-// POST: Generar nuevos tokens
+// POST: Generar nuevos tokens (VERSIÓN CORREGIDA)
 export async function POST(request: Request) {
   try {
-    // Usar la misma función verificarAdmin que ya valida el token
     const verificado = await verificarAdmin();
     if (!verificado.autorizado) {
       return verificado.error;
     }
 
-    // Ahora tenemos el payload con seguridad
     const payload = verificado.payload!;
     
     const body = await request.json();
     const { cantidad = 1, email_destino = null, dias_expiracion = 7 } = body;
 
-    // Validar cantidad
     if (cantidad < 1 || cantidad > 50) {
       return NextResponse.json(
         { error: 'La cantidad debe estar entre 1 y 50' },
@@ -134,12 +149,13 @@ export async function POST(request: Request) {
 
     for (let i = 0; i < cantidad; i++) {
       const tokenGenerado = generarTokenUnico();
+      // ✅ CORREGIDO: Guardar como texto (string) porque la columna es character varying
       const result = await query(
         `INSERT INTO tokens_invitacion 
          (token, email_destino, fecha_expiracion, creado_por) 
          VALUES ($1, $2, NOW() + $3::interval, $4) 
          RETURNING *`,
-        [tokenGenerado, email_destino, `${dias_expiracion} days`, payload.id]
+        [tokenGenerado, email_destino, `${dias_expiracion} days`, payload.id.toString()]
       );
       tokens.push(result.rows[0]);
     }
