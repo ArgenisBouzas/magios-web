@@ -1,3 +1,4 @@
+// app/api/personajes/[id]/nivel/route.ts
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { cookies } from 'next/headers';
@@ -34,23 +35,34 @@ export async function PATCH(
       );
     }
 
-    // Verificar que el personaje pertenece al usuario
-    const verifyResult = await query(
-      'SELECT id FROM personajes WHERE id = $1 AND usuario_id = $2',
-      [id, usuarioId]
-    );
+    // Verificar permisos: 
+    // - El propietario del personaje
+    // - Generales y Oficiales pueden editar cualquier personaje
+    if (payload.rango === 'General' || payload.rango === 'Oficial') {
+      // Es General u Oficial - puede editar cualquier personaje
+      await query(
+        'UPDATE personajes SET nivel = $1 WHERE id = $2',
+        [nivel, id]
+      );
+    } else {
+      // No es admin - verificar que sea el propietario
+      const verifyResult = await query(
+        'SELECT id FROM personajes WHERE id = $1 AND usuario_id = $2',
+        [id, usuarioId]
+      );
 
-    if (verifyResult.rows.length === 0) {
-      return NextResponse.json(
-        { error: 'No tienes permiso para editar este personaje' },
-        { status: 403 }
+      if (verifyResult.rows.length === 0) {
+        return NextResponse.json(
+          { error: 'No tienes permiso para editar este personaje' },
+          { status: 403 }
+        );
+      }
+
+      await query(
+        'UPDATE personajes SET nivel = $1 WHERE id = $2',
+        [nivel, id]
       );
     }
-
-    await query(
-      'UPDATE personajes SET nivel = $1 WHERE id = $2',
-      [nivel, id]
-    );
 
     return NextResponse.json({ message: 'Nivel actualizado correctamente' });
   } catch (error) {

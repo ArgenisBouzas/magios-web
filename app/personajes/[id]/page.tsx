@@ -61,7 +61,30 @@ const getIconoClase = (clase: string) => {
   return iconosClases[clase] || '/iconos wow/default.png';
 };
 
-// Datos de ejemplo para slots (esto luego vendrá de la BD)
+// Función para obtener el color del rango
+const getRangoColor = (rango: string) => {
+  const colores: Record<string, string> = {
+    'Guild Master': 'bg-purple-900 text-purple-200 border-purple-700',
+    'Officer': 'bg-blue-900 text-blue-200 border-blue-700',
+    'Alter': 'bg-yellow-900 text-yellow-200 border-yellow-700',
+    'Member': 'bg-green-900 text-green-200 border-green-700',
+    'Initiate': 'bg-gray-900 text-gray-200 border-gray-700'
+  };
+  return colores[rango] || 'bg-gray-900 text-gray-200 border-gray-700';
+};
+
+const getRangoTextColor = (rango: string) => {
+  const colores: Record<string, string> = {
+    'Guild Master': 'text-purple-400',
+    'Officer': 'text-blue-400',
+    'Alter': 'text-yellow-400',
+    'Member': 'text-green-400',
+    'Initiate': 'text-gray-400'
+  };
+  return colores[rango] || 'text-gray-400';
+};
+
+// Datos de ejemplo para slots
 const slotsEquipamiento = [
   { id: 1, nombre: 'Cabeza', slot: 'head', icon: '🪖' },
   { id: 2, nombre: 'Cuello', slot: 'neck', icon: '📿' },
@@ -91,15 +114,20 @@ export default function PersonajeDetallePage({ params }: { params: Promise<{ id:
   const [usuarioActual, setUsuarioActual] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [exito, setExito] = useState('');
   const [esPropietario, setEsPropietario] = useState(false);
 
-  // Estado para el modal de cambio de rango (solo para Generales)
+  // Estado para el modal de cambio de rango
   const [modalRangoAbierto, setModalRangoAbierto] = useState(false);
   const [nuevoRango, setNuevoRango] = useState('');
 
+  // Estado para edición de nivel
+  const [editandoNivel, setEditandoNivel] = useState(false);
+  const [nuevoNivel, setNuevoNivel] = useState(1);
+
   useEffect(() => {
-    fetchPersonaje();
     fetchUsuarioActual();
+    fetchPersonaje();
   }, [id]);
 
   const fetchUsuarioActual = async () => {
@@ -130,6 +158,7 @@ export default function PersonajeDetallePage({ params }: { params: Promise<{ id:
       }
       const data = await res.json();
       setPersonaje(data.personaje || data);
+      setNuevoNivel(data.personaje?.nivel || data.nivel);
       
       // Verificar si el usuario actual es el propietario
       if (usuarioActual) {
@@ -141,6 +170,27 @@ export default function PersonajeDetallePage({ params }: { params: Promise<{ id:
     } finally {
       setLoading(false);
     }
+  };
+
+  // Actualizar esPropietario cuando tengamos ambos datos
+  useEffect(() => {
+    if (usuarioActual && personaje) {
+      setEsPropietario(personaje.usuario_id === usuarioActual.id);
+    }
+  }, [usuarioActual, personaje]);
+
+  const puedeEditarNivel = () => {
+    if (!usuarioActual) return false;
+    // Propietario, Guild Master u Officer pueden editar nivel
+    return esPropietario || 
+           usuarioActual.rango === 'General' || 
+           usuarioActual.rango === 'Oficial';
+  };
+
+  const puedeCambiarRango = () => {
+    if (!usuarioActual) return false;
+    // Solo Guild Master puede cambiar rangos
+    return usuarioActual.rango === 'General';
   };
 
   const cambiarRango = async () => {
@@ -158,14 +208,45 @@ export default function PersonajeDetallePage({ params }: { params: Promise<{ id:
         throw new Error(error.error || 'Error al cambiar rango');
       }
 
-      // Actualizar el personaje con el nuevo rango
+      setExito(`Rango cambiado a ${nuevoRango} correctamente`);
       setPersonaje({ ...personaje, rango: nuevoRango });
       setModalRangoAbierto(false);
-      
-      // Mostrar mensaje de éxito (podrías agregar un estado para esto)
+      setTimeout(() => setExito(''), 3000);
     } catch (error: any) {
       console.error('Error:', error);
       setError(error.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const actualizarNivel = async () => {
+    if (!personaje) return;
+
+    if (nuevoNivel < 1 || nuevoNivel > 60) {
+      setError('El nivel debe estar entre 1 y 60');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/personajes/${personaje.id}/nivel`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nivel: nuevoNivel })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error al actualizar nivel');
+      }
+
+      setExito('¡Nivel actualizado correctamente!');
+      setPersonaje({ ...personaje, nivel: nuevoNivel });
+      setEditandoNivel(false);
+      setTimeout(() => setExito(''), 3000);
+    } catch (error: any) {
+      setError(error.message);
+      setTimeout(() => setError(''), 3000);
     }
   };
 
@@ -178,7 +259,10 @@ export default function PersonajeDetallePage({ params }: { params: Promise<{ id:
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c0e]/90 via-[#0a0c0e]/70 to-[#0a0c0e]/90"></div>
         </div>
         <div className="relative z-10 min-h-screen flex items-center justify-center">
-          <p className="text-[#c4aa7d] text-xl">Cargando personaje...</p>
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-[#8b6f4c] border-t-[#f0d9b5] rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-[#c4aa7d] text-xl">Cargando personaje...</p>
+          </div>
         </div>
       </div>
     );
@@ -192,13 +276,13 @@ export default function PersonajeDetallePage({ params }: { params: Promise<{ id:
           <Image src="/magios.gif" alt="Portal Oscuro" fill className="object-cover -z-11" priority unoptimized />
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c0e]/90 via-[#0a0c0e]/70 to-[#0a0c0e]/90"></div>
         </div>
-        <div className="relative z-10 min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-2xl mb-4">😢</p>
-            <p className="text-red-400">{error || 'Personaje no encontrado'}</p>
+        <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
+          <div className="text-center bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-8 max-w-md">
+            <p className="text-4xl mb-4">😢</p>
+            <p className="text-red-400 mb-4">{error || 'Personaje no encontrado'}</p>
             <Link 
               href="/personajes"
-              className="inline-block mt-4 bg-[#8b6f4c] px-4 py-2 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors"
+              className="inline-block bg-[#8b6f4c] px-6 py-3 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors"
             >
               Volver a Mis Personajes
             </Link>
@@ -228,6 +312,18 @@ export default function PersonajeDetallePage({ params }: { params: Promise<{ id:
         <Barra_navegacion />
 
         <main className="max-w-7xl mx-auto px-2 sm:px-3 md:px-4 py-4 sm:py-6 md:py-12">
+          {/* Mensajes de error/éxito */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-900/50 border border-red-700 text-red-200 text-sm rounded">
+              {error}
+            </div>
+          )}
+          {exito && (
+            <div className="mb-4 p-3 bg-green-900/50 border border-green-700 text-green-200 text-sm rounded">
+              {exito}
+            </div>
+          )}
+
           {/* Header con navegación */}
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <Link 
@@ -287,21 +383,63 @@ export default function PersonajeDetallePage({ params }: { params: Promise<{ id:
                   </div>
                   <div className="bg-[#0a0c0e] p-2 sm:p-3 border border-[#8b6f4c]">
                     <p className="text-[#8b6f4c] text-[10px] sm:text-xs">NIVEL</p>
-                    <p className="text-[#f0d9b5] font-bold text-sm sm:text-base">{personaje.nivel}</p>
+                    {editandoNivel && puedeEditarNivel() ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={nuevoNivel}
+                          onChange={(e) => setNuevoNivel(parseInt(e.target.value) || 1)}
+                          className="w-16 bg-[#0a0c0e] border border-[#8b6f4c] p-1 text-[#f0d9b5] text-sm"
+                        />
+                        <button
+                          onClick={actualizarNivel}
+                          className="bg-green-700 px-2 py-1 text-xs text-white rounded hover:bg-green-600"
+                          title="Guardar"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditandoNivel(false);
+                            setNuevoNivel(personaje.nivel);
+                          }}
+                          className="bg-red-700 px-2 py-1 text-xs text-white rounded hover:bg-red-600"
+                          title="Cancelar"
+                        >
+                          ✗
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-[#f0d9b5] font-bold text-sm sm:text-base">
+                          {personaje.nivel}
+                        </p>
+                        {puedeEditarNivel() && (
+                          <button
+                            onClick={() => {
+                              setEditandoNivel(true);
+                              setNuevoNivel(personaje.nivel);
+                            }}
+                            className="text-blue-400 hover:text-blue-300 text-xs transition-colors"
+                            title="Editar nivel"
+                          >
+                            📝
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="bg-[#0a0c0e] p-2 sm:p-3 border border-[#8b6f4c]">
                     <p className="text-[#8b6f4c] text-[10px] sm:text-xs">RANGO</p>
                     <div className="flex items-center gap-2">
-                      <span className={`font-bold text-sm sm:text-base ${
-                        personaje.rango === 'General' ? 'text-purple-400' :
-                        personaje.rango === 'Oficial' ? 'text-blue-400' :
-                        'text-green-400'
-                      }`}>
+                      <span className={`font-bold text-sm sm:text-base ${getRangoTextColor(personaje.rango)}`}>
                         {personaje.rango}
                       </span>
                       
-                      {/* Botón para cambiar rango (solo para Generales) */}
-                      {usuarioActual?.rango === 'General' && (
+                      {/* Botón para cambiar rango (solo para Guild Master) */}
+                      {puedeCambiarRango() && (
                         <button
                           onClick={() => {
                             setNuevoRango(personaje.rango);
@@ -405,10 +543,11 @@ export default function PersonajeDetallePage({ params }: { params: Promise<{ id:
                   onChange={(e) => setNuevoRango(e.target.value)}
                   className="w-full bg-[#0a0c0e] border-2 border-[#8b6f4c] p-2 sm:p-3 text-sm sm:text-base text-[#f0d9b5]"
                 >
-                  <option value="General">General</option>
-                  <option value="Oficial">Oficial</option>
-                  <option value="Miembro">Miembro</option>
-                  <option value="Aspirante">Aspirante</option>
+                  <option value="Guild Master">Guild Master</option>
+                  <option value="Officer">Officer</option>
+                  <option value="Alter">Alter</option>
+                  <option value="Member">Member</option>
+                  <option value="Initiate">Initiate</option>
                 </select>
               </div>
               <div className="flex gap-3 pt-4">
