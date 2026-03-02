@@ -477,186 +477,186 @@ export default function DashboardPage() {
           </div>
 
           {/* Sección para Generales y Oficiales: Todos los personajes de la hermandad */}
-          {(usuario.rango === 'General' || usuario.rango === 'Oficial') && (
-            <div className="mt-8 bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-6 backdrop-blur-sm">
-              <h2 className="text-2xl font-bold text-[#f0d9b5] mb-4 font-permanent border-b-2 border-[#8b6f4c] pb-2">
-                ⚔️ TODOS LOS PERSONAJES DE LA HERMANDAD ({todosPersonajes.length})
-              </h2>
+{(usuario.rango === 'General' || usuario.rango === 'Oficial') && (
+  <div className="mt-8 bg-[#1a1f23]/80 border-2 border-[#8b6f4c] p-6 backdrop-blur-sm">
+    <h2 className="text-2xl font-bold text-[#f0d9b5] mb-4 font-permanent border-b-2 border-[#8b6f4c] pb-2">
+      ⚔️ TODOS LOS PERSONAJES DE LA HERMANDAD ({todosPersonajes.length})
+    </h2>
 
-              {/* Filtros */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div>
-                  <label className="block text-[#c4aa7d] text-xs mb-1">Buscar por nombre</label>
-                  <input
-                    type="text"
-                    value={filtroNombre}
-                    onChange={(e) => {
-                      setFiltroNombre(e.target.value);
-                      setPaginaActual(1);
-                    }}
-                    placeholder="Nombre del personaje..."
-                    className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[#c4aa7d] text-xs mb-1">Filtrar por rango</label>
-                  <select
-                    value={filtroRango}
-                    onChange={(e) => {
-                      setFiltroRango(e.target.value);
-                      setPaginaActual(1);
-                    }}
-                    className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] px-3 py-2 text-sm"
-                  >
-                    <option value="">Todos los rangos</option>
-                    {rangosUnicos.map(rango => (
-                      <option key={rango} value={rango}>{rango}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[#c4aa7d] text-xs mb-1">Filtrar por clase</label>
-                  <select
-                    value={filtroClase}
-                    onChange={(e) => {
-                      setFiltroClase(e.target.value);
-                      setPaginaActual(1);
-                    }}
-                    className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] px-3 py-2 text-sm"
-                  >
-                    <option value="">Todas las clases</option>
-                    {clasesUnicas.map(clase => (
-                      <option key={clase} value={clase}>{clase}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-end">
+    {/* Filtros */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div>
+        <label className="block text-[#c4aa7d] text-xs mb-1">Buscar por nombre</label>
+        <input
+          type="text"
+          value={filtroNombre}
+          onChange={(e) => {
+            setFiltroNombre(e.target.value);
+            setPaginaActual(1);
+          }}
+          placeholder="Nombre del personaje..."
+          className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label className="block text-[#c4aa7d] text-xs mb-1">Filtrar por rango</label>
+        <select
+          value={filtroRango}
+          onChange={(e) => {
+            setFiltroRango(e.target.value);
+            setPaginaActual(1);
+          }}
+          className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] px-3 py-2 text-sm"
+        >
+          <option value="">Todos los rangos</option>
+          {rangosUnicos.map(rango => (
+            <option key={rango} value={rango}>{rango}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-[#c4aa7d] text-xs mb-1">Filtrar por clase</label>
+        <select
+          value={filtroClase}
+          onChange={(e) => {
+            setFiltroClase(e.target.value);
+            setPaginaActual(1);
+          }}
+          className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] px-3 py-2 text-sm"
+        >
+          <option value="">Todas las clases</option>
+          {clasesUnicas.map(clase => (
+            <option key={clase} value={clase}>{clase}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-end">
+        <button
+          onClick={() => {
+            setFiltroNombre('');
+            setFiltroRango('');
+            setFiltroClase('');
+            setPaginaActual(1);
+          }}
+          className="w-full bg-[#8b6f4c] px-4 py-2 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors text-sm"
+        >
+          LIMPIAR FILTROS
+        </button>
+      </div>
+    </div>
+
+    {personajesFiltrados.length === 0 ? (
+      <div className="bg-[#0a0c0e] border border-[#8b6f4c] p-8 text-center">
+        <p className="text-[#8b6f4c]">No se encontraron personajes con esos filtros.</p>
+      </div>
+    ) : (
+      <>
+        {/* Grid de personajes */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {personajesPaginados.map((personaje) => (
+            <div
+              key={personaje.id}
+              className="bg-[#0a0c0e] border-2 border-[#8b6f4c] p-3 hover:border-[#f0d9b5] transition-colors"
+            >
+              <div className="flex items-start gap-2">
+                <Link href={`/personajes/${personaje.id}`} className="flex items-start gap-2 flex-1">
+                  <div className="w-10 h-10 bg-[#1a1f23] border border-[#8b6f4c] rounded overflow-hidden flex-shrink-0">
+                    <Image
+                      src={getIconoClase(personaje.clase)}
+                      alt={personaje.clase}
+                      width={40}
+                      height={40}
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-[#f0d9b5] font-bold text-sm truncate">
+                        {personaje.nombre_personaje}
+                      </p>
+                      <span className="text-[8px] bg-[#8b6f4c] text-[#0a0c0e] px-1 py-0.5 font-bold whitespace-nowrap">
+                        Nv.{personaje.nivel}
+                      </span>
+                    </div>
+                    <p className="text-[#c4aa7d] text-[10px] truncate">
+                      {personaje.raza} • {personaje.clase}
+                    </p>
+                    <p className="text-[#8b6f4c] text-[8px] mt-1">
+                      Dueño: {personaje.nombre_usuario || 'Desconocido'}
+                    </p>
+                  </div>
+                </Link>
+
+                {/* Botón eliminar (solo para Generales) */}
+                {usuario.rango === 'General' && (
                   <button
                     onClick={() => {
-                      setFiltroNombre('');
-                      setFiltroRango('');
-                      setFiltroClase('');
-                      setPaginaActual(1);
+                      setPersonajeAEliminar(personaje);
+                      setModalEliminarAbierto(true);
                     }}
-                    className="w-full bg-[#8b6f4c] px-4 py-2 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors text-sm"
+                    className="bg-red-600/80 hover:bg-red-700 px-1.5 py-1 text-[10px] text-white rounded transition-colors"
+                    title="Eliminar personaje"
                   >
-                    LIMPIAR FILTROS
+                    🗑️
                   </button>
-                </div>
+                )}
               </div>
 
-              {personajesFiltrados.length === 0 ? (
-                <div className="bg-[#0a0c0e] border border-[#8b6f4c] p-8 text-center">
-                  <p className="text-[#8b6f4c]">No se encontraron personajes con esos filtros.</p>
+              {/* Selector de rango (solo para Generales) - AHORA CON NUEVOS RANGOS */}
+              {usuario.rango === 'General' && (
+                <div className="mt-3 pt-2 border-t border-[#8b6f4c]">
+                  <label className="block text-[#c4aa7d] text-[8px] mb-1">Cambiar rango</label>
+                  <select
+                    value={personaje.rango}
+                    onChange={(e) => {
+                      setPersonajeSeleccionado(personaje);
+                      setNuevoRango(e.target.value);
+                      setModalRangoAbierto(true);
+                    }}
+                    className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] text-[10px] px-2 py-1"
+                  >
+                    <option value="Guild Master">Guild Master</option>
+                    <option value="Officer">Officer</option>
+                    <option value="Alter">Alter</option>
+                    <option value="Member">Member</option>
+                    <option value="Initiate">Initiate</option>
+                  </select>
                 </div>
-              ) : (
-                <>
-                  {/* Grid de personajes */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {personajesPaginados.map((personaje) => (
-                      <div
-                        key={personaje.id}
-                        className="bg-[#0a0c0e] border-2 border-[#8b6f4c] p-3 hover:border-[#f0d9b5] transition-colors"
-                      >
-                        <div className="flex items-start gap-2">
-                          <Link href={`/personajes/${personaje.id}`} className="flex items-start gap-2 flex-1">
-                            <div className="w-10 h-10 bg-[#1a1f23] border border-[#8b6f4c] rounded overflow-hidden flex-shrink-0">
-                              <Image
-                                src={getIconoClase(personaje.clase)}
-                                alt={personaje.clase}
-                                width={40}
-                                height={40}
-                                className="object-contain p-0.5"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-1">
-                                <p className="text-[#f0d9b5] font-bold text-sm truncate">
-                                  {personaje.nombre_personaje}
-                                </p>
-                                <span className="text-[8px] bg-[#8b6f4c] text-[#0a0c0e] px-1 py-0.5 font-bold whitespace-nowrap">
-                                  Nv.{personaje.nivel}
-                                </span>
-                              </div>
-                              <p className="text-[#c4aa7d] text-[10px] truncate">
-                                {personaje.raza} • {personaje.clase}
-                              </p>
-                              <p className="text-[#8b6f4c] text-[8px] mt-1">
-                                Dueño: {personaje.nombre_usuario || 'Desconocido'}
-                              </p>
-                            </div>
-                          </Link>
-
-                          {/* Botón eliminar (solo para Generales) */}
-                          {usuario.rango === 'General' && (
-                            <button
-                              onClick={() => {
-                                setPersonajeAEliminar(personaje);
-                                setModalEliminarAbierto(true);
-                              }}
-                              className="bg-red-600/80 hover:bg-red-700 px-1.5 py-1 text-[10px] text-white rounded transition-colors"
-                              title="Eliminar personaje"
-                            >
-                              🗑️
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Selector de rango (solo para Generales) */}
-                        {usuario.rango === 'General' && (
-                          <div className="mt-3 pt-2 border-t border-[#8b6f4c]">
-                            <label className="block text-[#c4aa7d] text-[8px] mb-1">Cambiar rango</label>
-                            <select
-                              value={personaje.rango}
-                              onChange={(e) => {
-                                setPersonajeSeleccionado(personaje);
-                                setNuevoRango(e.target.value);
-                                setModalRangoAbierto(true);
-                              }}
-                              className="w-full bg-[#0a0c0e] border border-[#8b6f4c] text-[#c4aa7d] text-[10px] px-2 py-1"
-                            >
-                              <option value="General">General</option>
-                              <option value="Oficial">Oficial</option>
-                              <option value="Miembro">Miembro</option>
-                              <option value="Aspirante">Aspirante</option>
-                            </select>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Paginación */}
-                  {totalPaginas > 1 && (
-                    <div className="flex justify-center items-center space-x-2 mt-6">
-                      <button
-                        onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
-                        disabled={paginaActual === 1}
-                        className="w-8 h-8 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        ←
-                      </button>
-                      <span className="text-[#c4aa7d] text-sm">
-                        Página {paginaActual} de {totalPaginas}
-                      </span>
-                      <button
-                        onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
-                        disabled={paginaActual === totalPaginas}
-                        className="w-8 h-8 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        →
-                      </button>
-                    </div>
-                  )}
-
-                  <p className="text-[#8b6f4c] text-xs mt-4 text-center">
-                    Mostrando {personajesPaginados.length} de {personajesFiltrados.length} personajes
-                  </p>
-                </>
               )}
             </div>
-          )}
+          ))}
+        </div>
 
+        {/* Paginación */}
+        {totalPaginas > 1 && (
+          <div className="flex justify-center items-center space-x-2 mt-6">
+            <button
+              onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
+              disabled={paginaActual === 1}
+              className="w-8 h-8 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ←
+            </button>
+            <span className="text-[#c4aa7d] text-sm">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <button
+              onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
+              disabled={paginaActual === totalPaginas}
+              className="w-8 h-8 border-2 border-[#8b6f4c] text-[#c4aa7d] hover:bg-[#8b6f4c] hover:text-[#0a0c0e] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              →
+            </button>
+          </div>
+        )}
+
+        <p className="text-[#8b6f4c] text-xs mt-4 text-center">
+          Mostrando {personajesPaginados.length} de {personajesFiltrados.length} personajes
+        </p>
+      </>
+    )}
+  </div>
+)}
           {/* Acciones rápidas */}
           <div className="mt-8 grid grid-cols-2 gap-4">
             <Link

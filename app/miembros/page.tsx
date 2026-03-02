@@ -20,7 +20,7 @@ interface Personaje {
   usuario_id: number;
 }
 
-// Mapeo de clases a sus iconos (AHORA INCLUYE SHAMAN)
+// Mapeo de clases a sus iconos
 const iconosClases: Record<string, string> = {
   'Druida': '/iconos wow/DRUID.png',
   'Cazador': '/iconos wow/HUNTER.png',
@@ -30,8 +30,8 @@ const iconosClases: Record<string, string> = {
   'Pícaro': '/iconos wow/ROGUE.png',
   'Brujo': '/iconos wow/WARLOCK.png',
   'Guerrero': '/iconos wow/WARRIOR.png',
-  'Chamán': '/iconos wow/SHAMAN.png', // AÑADIDO
-  'Shaman': '/iconos wow/SHAMAN.png'   // Por si acaso
+  'Chamán': '/iconos wow/SHAMAN.png',
+  'Shaman': '/iconos wow/SHAMAN.png'
 };
 
 // Función para obtener el icono de clase
@@ -39,12 +39,18 @@ const getIconoClase = (clase: string) => {
   return iconosClases[clase] || '/iconos wow/default.png';
 };
 
-// Orden de rangos para mostrar
+// Orden de rangos (del mayor al menor)
 const ordenRangos: Record<string, number> = {
+  'Guild Master': 1,
+  'Officer': 2,
+  'Alter': 3,
+  'Member': 4,
+  'Initiate': 5,
+  // Mantener compatibilidad con rangos antiguos
   'General': 1,
   'Oficial': 2,
-  'Miembro': 3,
-  'Aspirante': 4
+  'Miembro': 4,
+  'Aspirante': 5
 };
 
 export default function MiembrosPage() {
@@ -82,22 +88,27 @@ export default function MiembrosPage() {
     }
   };
 
-  // Aplicar filtros
+  // Aplicar filtros y ordenamiento
   const personajesFiltrados = personajes
     .filter(p => p.activo) // Solo personajes activos
     .filter(p => !filtroClase || p.clase === filtroClase)
     .filter(p => !filtroRango || p.rango === filtroRango)
     .filter(p => p.nombre_personaje.toLowerCase().includes(busqueda.toLowerCase()))
     .sort((a, b) => {
-      // Primero por rango
+      // 1. Ordenar por rango (usando el mapa de orden)
       const ordenA = ordenRangos[a.rango] || 999;
       const ordenB = ordenRangos[b.rango] || 999;
-      if (ordenA !== ordenB) return ordenA - ordenB;
       
-      // Luego por nivel (de mayor a menor)
-      if (b.nivel !== a.nivel) return b.nivel - a.nivel;
+      if (ordenA !== ordenB) {
+        return ordenA - ordenB; // Menor número = mayor rango
+      }
       
-      // Finalmente por nombre
+      // 2. Si mismo rango, ordenar por nivel (de mayor a menor)
+      if (b.nivel !== a.nivel) {
+        return b.nivel - a.nivel;
+      }
+      
+      // 3. Si mismo nivel, ordenar alfabéticamente por nombre
       return a.nombre_personaje.localeCompare(b.nombre_personaje);
     });
 
@@ -108,8 +119,10 @@ export default function MiembrosPage() {
     paginaActual * personajesPorPagina
   );
 
-  // Obtener clases únicas para el filtro (AHORA INCLUYE SHAMAN)
+  // Obtener clases únicas para el filtro
   const clasesUnicas = [...new Set(personajes.map(p => p.clase))].sort();
+  
+  // Obtener rangos únicos y ordenarlos según el mapa de orden
   const rangosUnicos = [...new Set(personajes.map(p => p.rango))].sort((a, b) => 
     (ordenRangos[a] || 999) - (ordenRangos[b] || 999)
   );
@@ -271,13 +284,15 @@ export default function MiembrosPage() {
                       <div className="mt-1 sm:mt-2 flex items-center gap-2">
                         <span
                           className={`text-[8px] sm:text-xs px-1 sm:px-2 py-0.5 whitespace-nowrap inline-block ${
-                            personaje.rango === "General"
+                            personaje.rango === "Guild Master" || personaje.rango === "General"
                               ? "bg-purple-900/80 text-purple-200 border border-purple-700"
-                              : personaje.rango === "Oficial"
+                              : personaje.rango === "Officer" || personaje.rango === "Oficial"
                                 ? "bg-blue-900/80 text-blue-200 border border-blue-700"
-                                : personaje.rango === "Miembro"
-                                  ? "bg-green-900/80 text-green-200 border border-green-700"
-                                  : "bg-gray-900/80 text-gray-200 border border-gray-700"
+                                : personaje.rango === "Alter"
+                                  ? "bg-yellow-900/80 text-yellow-200 border border-yellow-700"
+                                  : personaje.rango === "Member" || personaje.rango === "Miembro"
+                                    ? "bg-green-900/80 text-green-200 border border-green-700"
+                                    : "bg-gray-900/80 text-gray-200 border border-gray-700"
                           }`}
                         >
                           {personaje.rango}
@@ -380,7 +395,13 @@ export default function MiembrosPage() {
             </div>
             <div className="bg-[#1a1f23]/80 border border-[#8b6f4c] p-2 sm:p-3 md:p-4 text-center backdrop-blur-sm">
               <p className="text-base sm:text-lg md:text-2xl font-bold text-[#f0d9b5]">
-                {personajes.filter(p => p.rango === 'General' || p.rango === 'Oficial').length}
+                {personajes.filter(p => 
+                  p.rango === 'Guild Master' || 
+                  p.rango === 'General' || 
+                  p.rango === 'Officer' || 
+                  p.rango === 'Oficial' || 
+                  p.rango === 'Alter'
+                ).length}
               </p>
               <p className="text-[8px] sm:text-xs text-[#8b6f4c] uppercase">
                 Liderazgo
