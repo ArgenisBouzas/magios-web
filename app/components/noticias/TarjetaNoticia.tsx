@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Noticia {
   id: number;
@@ -28,19 +28,79 @@ interface Props {
 
 export default function TarjetaNoticia({ noticia }: Props) {
   const [imagenActual, setImagenActual] = useState(0);
-  const tieneImagenes = noticia.imagenes && noticia.imagenes.length > 0;
+  const [imagenesValidas, setImagenesValidas] = useState<string[]>([]);
+  const [videosInfo, setVideosInfo] = useState<Array<{id: string, url: string}>>([]);
+  const [mostrarVideo, setMostrarVideo] = useState(false);
+
+  // Función para detectar videos de YouTube y obtener su miniatura
+  const getYoutubeVideoId = (url: string): string | null => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2]?.length === 11) ? match[2] : null;
+  };
+
+  const getYoutubeThumbnail = (videoId: string): string => {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  };
+
+  // Función para extraer URLs de imágenes del contenido (con parámetros)
+  const extraerImagenes = (contenido: string): string[] => {
+    const urlRegex = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?/gi;
+    return contenido.match(urlRegex) || [];
+  };
+
+  // Función para extraer videos de YouTube del contenido
+  const extraerVideos = (contenido: string): Array<{id: string, url: string}> => {
+    const urlRegex = /(https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+)/gi;
+    const urls = contenido.match(urlRegex) || [];
+    
+    return urls
+      .map(url => {
+        const id = getYoutubeVideoId(url);
+        return id ? { id, url } : null;
+      })
+      .filter((item): item is {id: string, url: string} => item !== null);
+  };
+
+  useEffect(() => {
+    // Extraer imágenes del contenido
+    const imagenesExtraidas = extraerImagenes(noticia.contenido);
+    
+    // Filtrar imágenes que parecen válidas
+    const imagenesFiltradas = imagenesExtraidas.filter(img => 
+      !img.includes('youtube') && !img.includes('youtu.be')
+    );
+    
+    setImagenesValidas(imagenesFiltradas);
+    
+    // Detectar videos de YouTube
+    const videosExtraidos = extraerVideos(noticia.contenido);
+    setVideosInfo(videosExtraidos);
+    
+    // Decidir qué mostrar: si hay imágenes, mostrar imágenes; si no, mostrar el primer video
+    setMostrarVideo(imagenesFiltradas.length === 0 && videosExtraidos.length > 0);
+  }, [noticia.contenido]);
+
+  const tieneImagenes = imagenesValidas.length > 0;
+  const tieneVideos = videosInfo.length > 0;
 
   const extractResumen = (contenido: string) => {
-    // Eliminar URLs de imágenes y markdown para el resumen
-    const sinUrls = contenido.replace(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/gi, '');
+    if (!contenido) return '';
+    
+    // Eliminar URLs de imágenes y videos para el resumen
+    const urlRegex = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?/gi;
+    const youtubeRegex = /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+/gi;
+    const sinUrls = contenido.replace(urlRegex, '').replace(youtubeRegex, '');
     const sinMarkdown = sinUrls.replace(/\*\*/g, '');
-    return sinMarkdown.substring(0, 100) + '...';
+    const sinTitulos = sinMarkdown.replace(/#{1,3}\s/g, '');
+    const textoLimpio = sinTitulos.replace(/\s+/g, ' ').trim();
+    return textoLimpio.substring(0, 100) + (textoLimpio.length > 100 ? '...' : '');
   };
 
   const siguienteImagen = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (noticia.imagenes && imagenActual < noticia.imagenes.length - 1) {
+    if (imagenActual < imagenesValidas.length - 1) {
       setImagenActual(imagenActual + 1);
     }
   };
@@ -48,7 +108,7 @@ export default function TarjetaNoticia({ noticia }: Props) {
   const anteriorImagen = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (noticia.imagenes && imagenActual > 0) {
+    if (imagenActual > 0) {
       setImagenActual(imagenActual - 1);
     }
   };
@@ -56,61 +116,100 @@ export default function TarjetaNoticia({ noticia }: Props) {
   return (
     <Link href={`/noticias/${noticia.id}`}>
       <div className="bg-[#1a1f23]/80 border-2 border-[#8b6f4c] hover:border-[#f0d9b5] transition-all group backdrop-blur-sm h-full flex flex-col">
-        {/* Carrusel de imágenes (si hay) */}
-        {tieneImagenes && (
-          <div className="relative h-48 border-b-2 border-[#8b6f4c] overflow-hidden">
-            <div className="relative w-full h-full">
-              <Image
-                src={noticia.imagenes![imagenActual]}
-                alt={`Imagen ${imagenActual + 1} de ${noticia.titulo}`}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-            
-            {/* Indicadores de imagen */}
-            {noticia.imagenes!.length > 1 && (
+        {/* Carrusel de imágenes o miniatura de video */}
+        {(tieneImagenes || (mostrarVideo && tieneVideos)) && (
+          <div className="relative h-48 border-b-2 border-[#8b6f4c] overflow-hidden bg-[#0a0c0e]">
+            {mostrarVideo && tieneVideos ? (
+              // Mostrar miniatura del video (sin reproducir)
+              <div className="relative w-full h-full">
+                <Image
+                  src={getYoutubeThumbnail(videosInfo[0].id)}
+                  alt={`Miniatura de video para ${noticia.titulo}`}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  onError={(e) => {
+                    // Si falla la miniatura de máxima calidad, intentar con la de calidad media
+                    const img = e.target as HTMLImageElement;
+                    img.src = `https://img.youtube.com/vi/${videosInfo[0].id}/hqdefault.jpg`;
+                  }}
+                />
+                {/* Overlay con ícono de play (solo decorativo) */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                  <div className="w-16 h-16 bg-[#8b6f4c]/90 rounded-full flex items-center justify-center">
+                    <span className="text-4xl text-[#0a0c0e] ml-1">▶</span>
+                  </div>
+                </div>
+                {/* Badge de video */}
+                <div className="absolute top-2 left-2 bg-red-600/90 text-white text-xs px-2 py-1 rounded">
+                  📺 VIDEO
+                </div>
+              </div>
+            ) : tieneImagenes ? (
+              // Mostrar imágenes
               <>
-                <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1">
-                  {noticia.imagenes!.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        idx === imagenActual ? 'bg-[#f0d9b5]' : 'bg-[#8b6f4c]'
-                      }`}
-                    />
-                  ))}
+                <div className="relative w-full h-full">
+                  <Image
+                    src={imagenesValidas[imagenActual]}
+                    alt={`Imagen ${imagenActual + 1} de ${noticia.titulo}`}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    onError={(e) => {
+                      console.error('Error cargando imagen:', imagenesValidas[imagenActual]);
+                      if (imagenActual < imagenesValidas.length - 1) {
+                        setImagenActual(imagenActual + 1);
+                      }
+                    }}
+                  />
                 </div>
                 
-                {/* Botones de navegación (aparecen al hover) */}
-                <button
-                  onClick={anteriorImagen}
-                  className={`absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-[#8b6f4c] transition-opacity ${
-                    imagenActual === 0 ? 'opacity-30 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100'
-                  }`}
-                  disabled={imagenActual === 0}
-                >
-                  ←
-                </button>
-                <button
-                  onClick={siguienteImagen}
-                  className={`absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-[#8b6f4c] transition-opacity ${
-                    imagenActual === noticia.imagenes!.length - 1 ? 'opacity-30 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100'
-                  }`}
-                  disabled={imagenActual === noticia.imagenes!.length - 1}
-                >
-                  →
-                </button>
+                {/* Indicadores de imagen */}
+                {imagenesValidas.length > 1 && (
+                  <>
+                    <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1">
+                      {imagenesValidas.map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            idx === imagenActual ? 'bg-[#f0d9b5]' : 'bg-[#8b6f4c]'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    
+                    {/* Botones de navegación */}
+                    <button
+                      onClick={anteriorImagen}
+                      className={`absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-[#8b6f4c] transition-opacity ${
+                        imagenActual === 0 ? 'opacity-30 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100'
+                      }`}
+                      disabled={imagenActual === 0}
+                    >
+                      ←
+                    </button>
+                    <button
+                      onClick={siguienteImagen}
+                      className={`absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-[#8b6f4c] transition-opacity ${
+                        imagenActual === imagenesValidas.length - 1 ? 'opacity-30 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100'
+                      }`}
+                      disabled={imagenActual === imagenesValidas.length - 1}
+                    >
+                      →
+                    </button>
+                  </>
+                )}
+                
+                {/* Contador de imágenes */}
+                {imagenesValidas.length > 1 && (
+                  <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                    {imagenActual + 1} / {imagenesValidas.length}
+                  </div>
+                )}
               </>
-            )}
-            
-            {/* Contador de imágenes */}
-            {noticia.imagenes!.length > 1 && (
-              <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                {imagenActual + 1} / {noticia.imagenes!.length}
-              </div>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -156,9 +255,14 @@ export default function TarjetaNoticia({ noticia }: Props) {
               </span>
             </span>
             <div className="flex items-center gap-2">
+              {tieneVideos && !tieneImagenes && (
+                <span className="text-[#8b6f4c]" title="Video de YouTube">
+                  📺 {videosInfo.length}
+                </span>
+              )}
               {tieneImagenes && (
-                <span className="text-[#8b6f4c]" title={`${noticia.imagenes!.length} imágenes`}>
-                  🖼️ {noticia.imagenes!.length}
+                <span className="text-[#8b6f4c]" title={`${imagenesValidas.length} imágenes`}>
+                  🖼️ {imagenesValidas.length}
                 </span>
               )}
               <span className="text-[#8b6f4c]">👁️ {noticia.vistas}</span>

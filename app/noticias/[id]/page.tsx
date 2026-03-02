@@ -79,17 +79,32 @@ export default function NoticiaDetallePage({ params }: { params: Promise<{ id: s
     }
   };
 
-  // Función para renderizar el contenido con soporte para títulos, negritas e imágenes
- // Reemplaza toda la función renderizarContenido con esta versión corregida
+  // Función para detectar videos de YouTube
+  const getYoutubeVideoId = (url: string): string | null => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  // Función para renderizar el contenido con soporte para títulos, negritas, imágenes y videos
+// app/noticias/[id]/page.tsx
+// Reemplaza SOLO la función renderizarContenido con esta versión
 
 const renderizarContenido = (texto: string) => {
   if (!texto) return null;
+
+  // Función para detectar videos de YouTube
+  const getYoutubeVideoId = (url: string): string | null => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2]?.length === 11) ? match[2] : null;
+  };
 
   const lineas = texto.split('\n');
   const elementos: JSX.Element[] = [];
 
   lineas.forEach((linea, indexLinea) => {
-    if (!linea.trim()) {
+    if (!linea?.trim()) {
       elementos.push(<br key={`br-${indexLinea}`} />);
       return;
     }
@@ -120,71 +135,115 @@ const renderizarContenido = (texto: string) => {
       return;
     }
 
-    // Detectar URLs de imágenes
-    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp))/gi;
+    // Detectar URLs de imágenes y videos de YouTube
+    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?|(https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+))/gi;
     
-    // Si la línea es solo una URL de imagen, la añadimos directamente (fuera de <p>)
+    // Si la línea es solo una URL
     if (linea.match(urlRegex) && !linea.replace(urlRegex, '').trim()) {
-      elementos.push(
-        <div key={`img-${indexLinea}`} className="my-6 md:my-8">
-          <div className="relative w-full h-48 md:h-96 bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
-            <Image
-              src={linea}
-              alt="Imagen en noticia"
-              fill
-              className="object-contain"
-              unoptimized
-              priority={indexLinea < 2}
-              sizes="(max-width: 768px) 100vw, 800px"
-            />
+      const videoId = getYoutubeVideoId(linea);
+      
+      if (videoId) {
+        // Es un video de YouTube
+        elementos.push(
+          <div key={`video-${indexLinea}`} className="my-6 md:my-8">
+            <div className="relative w-full aspect-video bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
+              <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube.com/embed/${videoId}`}
+                title="Video de YouTube"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
+            </div>
           </div>
-        </div>
-      );
+        );
+      } else {
+        // Es una imagen
+        elementos.push(
+          <div key={`img-${indexLinea}`} className="my-6 md:my-8">
+            <div className="relative w-full h-48 md:h-96 bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
+              <Image
+                src={linea}
+                alt="Imagen en noticia"
+                fill
+                className="object-contain"
+                unoptimized
+                priority={indexLinea < 2}
+                sizes="(max-width: 768px) 100vw, 800px"
+              />
+            </div>
+          </div>
+        );
+      }
       return;
     }
 
-    // Procesar líneas que contienen texto (posiblemente con URLs de imágenes incrustadas)
+    // Procesar líneas que contienen texto con URLs mezcladas
     const partes = linea.split(urlRegex);
-    // Nuevo array para acumular elementos de ESTA línea, separando texto de imágenes
+    const fragmentosTexto: JSX.Element[] = [];
     const elementosLinea: JSX.Element[] = [];
-    const fragmentosTexto: JSX.Element[] = []; // Para acumular texto de esta línea
 
     partes.forEach((parte, indexParte) => {
+      // ✅ IMPORTANTE: Verificar que parte existe y es string
+      if (!parte || typeof parte !== 'string') return;
+      
       if (parte.match(urlRegex)) {
-        // --- ES UNA IMAGEN ---
-        // Si había texto acumulado antes, lo añadimos como <p> primero
+        // Es una URL - primero sacamos el texto acumulado
         if (fragmentosTexto.length > 0) {
           elementosLinea.push(
             <p key={`p-texto-${indexLinea}-${indexParte}`} className="mb-3 md:mb-4 text-sm md:text-base text-[#c4aa7d]">
               {fragmentosTexto}
             </p>
           );
-          // Limpiamos el array de fragmentos de texto
           fragmentosTexto.length = 0;
         }
-        // Añadimos la imagen como un bloque independiente (FUERA de <p>)
-        elementosLinea.push(
-          <div key={`img-inline-${indexLinea}-${indexParte}`} className="my-3 md:my-4">
-            <div className="relative w-full h-40 md:h-64 bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
-              <Image
-                src={parte}
-                alt="Imagen en noticia"
-                fill
-                className="object-contain"
-                unoptimized
-                sizes="(max-width: 768px) 100vw, 600px"
-              />
+
+        const videoId = getYoutubeVideoId(parte);
+        if (videoId) {
+          // Es un video de YouTube
+          elementosLinea.push(
+            <div key={`video-inline-${indexLinea}-${indexParte}`} className="my-3 md:my-4">
+              <div className="relative w-full aspect-video bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${videoId}`}
+                  title="Video de YouTube"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
             </div>
-          </div>
-        );
+          );
+        } else {
+          // Es una imagen
+          elementosLinea.push(
+            <div key={`img-inline-${indexLinea}-${indexParte}`} className="my-3 md:my-4">
+              <div className="relative w-full h-40 md:h-64 bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
+                <Image
+                  src={parte}
+                  alt="Imagen en noticia"
+                  fill
+                  className="object-contain"
+                  unoptimized
+                  sizes="(max-width: 768px) 100vw, 600px"
+                />
+              </div>
+            </div>
+          );
+        }
       } else if (parte.trim()) {
-        // --- ES TEXTO ---
-        // Procesar negritas en el texto y acumularlo en fragmentosTexto
+        // Es texto - procesar negritas
         const boldRegex = /\*\*(.*?)\*\*/g;
         const textParts = parte.split(boldRegex);
         
         if (textParts.length === 1) {
-          fragmentosTexto.push(<span key={`text-${indexLinea}-${indexParte}-${parte.substring(0,20)}`}>{parte}</span>);
+          fragmentosTexto.push(<span key={`text-${indexLinea}-${indexParte}`}>{parte}</span>);
         } else {
           fragmentosTexto.push(
             <span key={`bold-${indexLinea}-${indexParte}`}>
@@ -200,7 +259,7 @@ const renderizarContenido = (texto: string) => {
       }
     });
 
-    // Al final de la línea, si quedó texto acumulado, lo añadimos como <p>
+    // Si quedó texto al final
     if (fragmentosTexto.length > 0) {
       elementosLinea.push(
         <p key={`p-final-${indexLinea}`} className="mb-3 md:mb-4 text-sm md:text-base text-[#c4aa7d]">
@@ -209,7 +268,6 @@ const renderizarContenido = (texto: string) => {
       );
     }
 
-    // Añadimos todos los elementos generados para esta línea al resultado final
     elementos.push(...elementosLinea);
   });
 
@@ -334,7 +392,7 @@ const renderizarContenido = (texto: string) => {
               </div>
             </div>
 
-            {/* Contenido */}
+            {/* Contenido - CON SOPORTE PARA VIDEOS DE YOUTUBE */}
             <div className="prose prose-invert max-w-none text-[#c4aa7d] leading-relaxed">
               {renderizarContenido(noticia.contenido)}
             </div>

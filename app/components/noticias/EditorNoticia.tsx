@@ -22,7 +22,7 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
 
   // Extraer URLs de imágenes del contenido para vista previa
   useEffect(() => {
-    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp))/gi;
+    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?|(https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+))/gi;
     const urls = content.match(urlRegex) || [];
     setPreviewImages(urls);
   }, [content]);
@@ -58,7 +58,7 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
   const insertImage = () => {
     if (!imageUrl) return;
     
-    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp))/gi;
+    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?|(https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+))/gi;
     if (!imageUrl.match(urlRegex)) {
       alert('Por favor, ingresa una URL válida de imagen');
       return;
@@ -88,7 +88,14 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
     }
   };
 
-  // Vista previa en tiempo real - CORREGIDA
+  // Función para detectar videos de YouTube
+  const getYoutubeVideoId = (url: string): string | null => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2]?.length === 11) ? match[2] : null;
+  };
+
+  // Vista previa en tiempo real - CON SOPORTE PARA YOUTUBE
   const renderPreview = () => {
     if (!content) return null;
 
@@ -96,7 +103,7 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
     const elementos: JSX.Element[] = [];
 
     lines.forEach((line, lineIndex) => {
-      if (!line.trim()) {
+      if (!line?.trim()) {
         elementos.push(<br key={`br-${lineIndex}`} />);
         return;
       }
@@ -127,49 +134,38 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
         return;
       }
 
-      // Detectar URLs de imágenes
-      const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp))/gi;
+      // Detectar URLs de imágenes y videos de YouTube
+      const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?|(https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+))/gi;
       
-      // Si la línea es solo una URL de imagen
+      // Si la línea es solo una URL
       if (line.match(urlRegex) && !line.replace(urlRegex, '').trim()) {
-        elementos.push(
-          <div key={`img-${lineIndex}`} className="my-6">
-            <div className="relative w-full h-64 bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
-              <Image
-                src={line}
-                alt="Imagen"
-                fill
-                className="object-contain"
-                unoptimized
-              />
+        const videoId = getYoutubeVideoId(line);
+        
+        if (videoId) {
+          // Es un video de YouTube
+          elementos.push(
+            <div key={`video-${lineIndex}`} className="my-6">
+              <div className="relative w-full aspect-video bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${videoId}`}
+                  title="Video de YouTube"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
             </div>
-          </div>
-        );
-        return;
-      }
-
-      // Procesar líneas que mezclan texto e imágenes
-      const partes = line.split(urlRegex);
-      const fragmentosTexto: JSX.Element[] = [];
-      const elementosLinea: JSX.Element[] = [];
-
-      partes.forEach((parte, idx) => {
-        if (parte.match(urlRegex)) {
-          // Es una imagen - primero sacamos el texto acumulado si existe
-          if (fragmentosTexto.length > 0) {
-            elementosLinea.push(
-              <p key={`p-${lineIndex}-${idx}`} className="mb-4 text-[#c4aa7d]">
-                {fragmentosTexto}
-              </p>
-            );
-            fragmentosTexto.length = 0;
-          }
-          // Luego añadimos la imagen como bloque separado
-          elementosLinea.push(
-            <div key={`img-${lineIndex}-${idx}`} className="my-4">
-              <div className="relative w-full h-48 bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
+          );
+        } else {
+          // Es una imagen
+          elementos.push(
+            <div key={`img-${lineIndex}`} className="my-6">
+              <div className="relative w-full h-64 bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
                 <Image
-                  src={parte}
+                  src={line}
                   alt="Imagen"
                   fill
                   className="object-contain"
@@ -178,6 +174,64 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
               </div>
             </div>
           );
+        }
+        return;
+      }
+
+      // Procesar líneas que mezclan texto y URLs
+      const partes = line.split(urlRegex);
+      const fragmentosTexto: JSX.Element[] = [];
+      const elementosLinea: JSX.Element[] = [];
+
+      partes.forEach((parte, idx) => {
+        if (!parte || typeof parte !== 'string') return;
+        
+        if (parte.match(urlRegex)) {
+          // Es una URL - primero sacamos el texto acumulado
+          if (fragmentosTexto.length > 0) {
+            elementosLinea.push(
+              <p key={`p-${lineIndex}-${idx}`} className="mb-4 text-[#c4aa7d]">
+                {fragmentosTexto}
+              </p>
+            );
+            fragmentosTexto.length = 0;
+          }
+
+          const videoId = getYoutubeVideoId(parte);
+          if (videoId) {
+            // Es un video de YouTube
+            elementosLinea.push(
+              <div key={`video-${lineIndex}-${idx}`} className="my-4">
+                <div className="relative w-full aspect-video bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="Video de YouTube"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 w-full h-full"
+                  />
+                </div>
+              </div>
+            );
+          } else {
+            // Es una imagen
+            elementosLinea.push(
+              <div key={`img-${lineIndex}-${idx}`} className="my-4">
+                <div className="relative w-full h-48 bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
+                  <Image
+                    src={parte}
+                    alt="Imagen"
+                    fill
+                    className="object-contain"
+                    unoptimized
+                  />
+                </div>
+              </div>
+            );
+          }
         } else if (parte.trim()) {
           // Es texto - procesar negritas
           const boldRegex = /\*\*(.*?)\*\*/g;
@@ -275,10 +329,10 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
 ### Título más pequeño
 **texto en negrita**
 
-Ejemplos de imágenes (copia y pega estas URLs para probar):
+Ejemplos de imágenes y videos:
 https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg
-https://wow.zamimg.com/images/wow/icons/large/inv_chest_plate_06.jpg
-https://wow.zamimg.com/images/wow/icons/large/spell_fire_fireball.jpg`}
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+https://youtu.be/dQw4w9WgXcQ`}
         className="w-full bg-[#0a0c0e] border-2 border-[#8b6f4c] p-4 text-[#f0d9b5] min-h-[300px] font-mono text-sm focus:border-[#f0d9b5] outline-none"
       />
 
@@ -367,34 +421,43 @@ https://wow.zamimg.com/images/wow/icons/large/spell_fire_fireball.jpg`}
         </div>
       )}
 
-      {/* Vista previa mejorada - AHORA CON HTML VÁLIDO */}
+      {/* Vista previa mejorada - CON SOPORTE PARA YOUTUBE */}
       {content && (
         <div className="mt-8 p-6 bg-[#1a1f23]/80 border-2 border-[#8b6f4c] rounded">
           <h4 className="text-[#f0d9b5] text-sm mb-4 border-b border-[#8b6f4c] pb-2 font-bold uppercase tracking-wider">
             VISTA PREVIA
           </h4>
           
-          {/* Miniaturas de imágenes */}
+          {/* Miniaturas de imágenes y videos */}
           {previewImages.length > 0 && (
             <div className="mb-6">
-              <p className="text-[#8b6f4c] text-xs mb-2">📸 Imágenes detectadas:</p>
+              <p className="text-[#8b6f4c] text-xs mb-2">📸 URLs detectadas:</p>
               <div className="flex flex-wrap gap-2">
-                {previewImages.map((url, idx) => (
-                  <div key={idx} className="relative w-20 h-20 border border-[#8b6f4c] rounded overflow-hidden bg-[#0a0c0e]">
-                    <Image
-                      src={url}
-                      alt={`Miniatura ${idx + 1}`}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  </div>
-                ))}
+                {previewImages.map((url, idx) => {
+                  const videoId = getYoutubeVideoId(url);
+                  return (
+                    <div key={idx} className="relative w-20 h-20 border border-[#8b6f4c] rounded overflow-hidden bg-[#0a0c0e]">
+                      {videoId ? (
+                        <div className="w-full h-full flex items-center justify-center text-2xl bg-[#1a1f23]">
+                          ▶️
+                        </div>
+                      ) : (
+                        <Image
+                          src={url}
+                          alt={`Miniatura ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Contenido renderizado - AHORA CON ESTRUCTURA HTML CORRECTA */}
+          {/* Contenido renderizado */}
           <div className="prose prose-invert max-w-none">
             {renderPreview()}
           </div>
