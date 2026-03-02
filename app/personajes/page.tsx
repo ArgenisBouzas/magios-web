@@ -30,7 +30,7 @@ const iconosClases: Record<string, string> = {
   'Shaman':'/iconos wow/SHAMAN.png'
 };
 
-// Función para obtener la ruta del icono (con manejo de errores)
+// Función para obtener la ruta del icono
 const getIconoClase = (clase: string) => {
   return iconosClases[clase] || '/iconos wow/default.png';
 };
@@ -50,6 +50,10 @@ export default function PersonajesPage() {
     clase: '',
     nivel: 1
   });
+
+  // Estado para edición de nivel
+  const [editandoNivel, setEditandoNivel] = useState<number | null>(null);
+  const [nuevoNivel, setNuevoNivel] = useState<number>(1);
 
   // Opciones para selects
   const razas = [
@@ -92,7 +96,6 @@ export default function PersonajesPage() {
     setError('');
     setExito('');
 
-    // Validaciones
     if (!nuevoPersonaje.nombre_personaje.trim()) {
       setError('El nombre del personaje es requerido');
       return;
@@ -131,13 +134,37 @@ export default function PersonajesPage() {
         return;
       }
 
-      // Éxito
       setExito('¡Personaje creado exitosamente!');
       setNuevoPersonaje({ nombre_personaje: '', raza: '', clase: '', nivel: 1 });
       setMostrarFormulario(false);
-      fetchPersonajes(); // Recargar lista
+      fetchPersonajes();
+      setTimeout(() => setExito(''), 3000);
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
 
-      // Limpiar mensaje de éxito después de 3 segundos
+  const actualizarNivel = async (id: number) => {
+    if (nuevoNivel < 1 || nuevoNivel > 60) {
+      setError('El nivel debe estar entre 1 y 60');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/personajes/${id}/nivel`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nivel: nuevoNivel })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error al actualizar nivel');
+      }
+
+      setExito('¡Nivel actualizado correctamente!');
+      setEditandoNivel(null);
+      fetchPersonajes();
       setTimeout(() => setExito(''), 3000);
     } catch (error: any) {
       setError(error.message);
@@ -158,7 +185,7 @@ export default function PersonajesPage() {
         throw new Error('Error al desactivar personaje');
       }
 
-      fetchPersonajes(); // Recargar lista
+      fetchPersonajes();
     } catch (error) {
       console.error('Error:', error);
       setError('No se pudo desactivar el personaje');
@@ -386,6 +413,20 @@ export default function PersonajesPage() {
                     >
                       👁️
                     </Link>
+                    
+                    {/* Botón editar nivel */}
+                    <button
+                      onClick={() => {
+                        setEditandoNivel(personaje.id);
+                        setNuevoNivel(personaje.nivel);
+                      }}
+                      className="text-blue-400 hover:text-blue-300 transition-colors p-1"
+                      title="Editar nivel"
+                    >
+                      📈
+                    </button>
+
+                    {/* Botón eliminar */}
                     <button
                       onClick={() => desactivarPersonaje(personaje.id)}
                       className="text-red-400 hover:text-red-300 transition-colors p-1"
@@ -395,6 +436,37 @@ export default function PersonajesPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Formulario de edición de nivel */}
+                {editandoNivel === personaje.id && (
+                  <div className="mt-4 pt-4 border-t border-[#8b6f4c]">
+                    <label className="block text-[#c4aa7d] text-xs mb-2">
+                      Editar nivel de {personaje.nombre_personaje}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={nuevoNivel}
+                        onChange={(e) => setNuevoNivel(parseInt(e.target.value) || 1)}
+                        className="flex-1 bg-[#0a0c0e] border border-[#8b6f4c] p-2 text-[#f0d9b5] text-sm"
+                      />
+                      <button
+                        onClick={() => actualizarNivel(personaje.id)}
+                        className="bg-green-700 px-3 py-1 text-xs text-white rounded hover:bg-green-600"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={() => setEditandoNivel(null)}
+                        className="bg-red-700 px-3 py-1 text-xs text-white rounded hover:bg-red-600"
+                      >
+                        ✗
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
