@@ -141,7 +141,7 @@ export default function RegisterPage() {
             <div className="text-center mb-6 md:mb-8">
               <div className="flex justify-center mb-3">
                 <Image
-                  src="/magios.png"
+                  src="/MAGIOS1-5.png"
                   alt="Magios Guild"
                   width={300}
                   height={150}

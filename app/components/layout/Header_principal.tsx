@@ -27,7 +27,7 @@ export default function Header_principal() {
         <div className="w-1/2 sm:w-1/3 max-w-[450px] z-15">
         <Link href="/login" className="flex items-center group relative z-20">
           <Image
-            src="/magios.png"
+            src="/MAGIOS1-5.png"
             alt="Portal Oscuro"
             width={400}
             height={200}

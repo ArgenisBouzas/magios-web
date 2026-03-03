@@ -29,7 +29,7 @@ export default function Header_secundario(){
             <Link href="/login" className="flex items-center group relative z-10">
               <div className="w-16 sm:w-24 md:w-36 h-auto">
                 <Image
-                  src="/magios.png"
+                  src="/MAGIOS1-5.png"
                   alt="Portal Oscuro"
                   width={400}
                   height={200}
