@@ -10,12 +10,50 @@ interface Props {
   placeholder?: string;
 }
 
-type FormatType = 'bold' | 'h1' | 'h2' | 'h3';
+type FormatType = 'bold' | 'h1' | 'h2' | 'h3' | 'link' | 'color';
+
+// Paleta de colores estilo WoW
+const colorPalette = [
+  { name: 'Dorado', value: '#f0d9b5', class: 'text-[#f0d9b5]' },
+  { name: 'Bronce', value: '#8b6f4c', class: 'text-[#8b6f4c]' },
+  { name: 'Púrpura', value: '#c4aa7d', class: 'text-[#c4aa7d]' },
+  { name: 'Rojo', value: '#ef4444', class: 'text-red-500' },
+  { name: 'Azul', value: '#3b82f6', class: 'text-blue-500' },
+  { name: 'Verde', value: '#10b981', class: 'text-green-500' },
+  { name: 'Amarillo', value: '#f59e0b', class: 'text-yellow-500' },
+  { name: 'Blanco', value: '#ffffff', class: 'text-white' },
+];
+
+// Emojis comunes
+const emojis = [
+  { emoji: '😀', name: 'Sonrisa' },
+  { emoji: '😂', name: 'Risa' },
+  { emoji: '😎', name: 'Guay' },
+  { emoji: '😢', name: 'Triste' },
+  { emoji: '🎉', name: 'Fiesta' },
+  { emoji: '⚔️', name: 'Espadas' },
+  { emoji: '🛡️', name: 'Escudo' },
+  { emoji: '🏆', name: 'Trofeo' },
+  { emoji: '🐉', name: 'Dragón' },
+  { emoji: '👑', name: 'Corona' },
+  { emoji: '💀', name: 'Muerte' },
+  { emoji: '✨', name: 'Magia' },
+  { emoji: '🔥', name: 'Fuego' },
+  { emoji: '❄️', name: 'Hielo' },
+  { emoji: '⚡', name: 'Rayo' },
+  { emoji: '💪', name: 'Fuerza' },
+];
 
 export default function EditorNoticia({ initialContent = '', onChange, placeholder }: Props) {
   const [content, setContent] = useState(initialContent);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showColorModal, setShowColorModal] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
+  const [selectedColor, setSelectedColor] = useState('#f0d9b5');
   const [imageError, setImageError] = useState(false);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -49,10 +87,72 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
       case 'h3':
         newContent = content.substring(0, start) + '### ' + selectedText + content.substring(end);
         break;
+      case 'link':
+        setShowLinkModal(true);
+        setLinkText(selectedText);
+        return;
+      case 'color':
+        setShowColorModal(true);
+        return;
     }
 
     setContent(newContent);
     onChange(newContent);
+  };
+
+  const insertLink = () => {
+    if (!linkUrl || !linkText) return;
+
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    // Formato: [texto del enlace](url)
+    const linkMarkdown = `[${linkText}](${linkUrl})`;
+    
+    const newContent = content.substring(0, start) + linkMarkdown + content.substring(end);
+    
+    setContent(newContent);
+    onChange(newContent);
+    setShowLinkModal(false);
+    setLinkUrl('');
+    setLinkText('');
+  };
+
+  const insertColor = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+    
+    if (!selectedText) return;
+
+    // Formato: <color=#f0d9b5>texto</color>
+    const colorMarkdown = `<color=${selectedColor}>${selectedText}</color>`;
+    
+    const newContent = content.substring(0, start) + colorMarkdown + content.substring(end);
+    
+    setContent(newContent);
+    onChange(newContent);
+    setShowColorModal(false);
+  };
+
+  const insertEmoji = (emoji: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    const newContent = content.substring(0, start) + emoji + content.substring(end);
+    
+    setContent(newContent);
+    onChange(newContent);
+    setShowEmojiPicker(false);
   };
 
   const insertImage = () => {
@@ -95,7 +195,27 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
     return (match && match[2]?.length === 11) ? match[2] : null;
   };
 
-  // Vista previa en tiempo real - CON SOPORTE PARA YOUTUBE
+  // Función para convertir markdown a HTML (NUEVA)
+  const markdownToHtml = (texto: string): string => {
+    if (!texto) return texto;
+
+    let html = texto;
+
+    // 1. Procesar colores: <color=#hex>texto</color>
+    html = html.replace(/<color=([^>]+)>(.*?)<\/color>/g, (match, color, content) => {
+      return `<span style="color: ${color};">${content}</span>`;
+    });
+
+    // 2. Procesar negritas (**texto**)
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#f0d9b5] font-bold">$1</strong>');
+
+    // 3. Procesar enlaces: [texto](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[#f0d9b5] hover:underline font-bold">$1</a>');
+
+    return html;
+  };
+
+  // Vista previa en tiempo real (CORREGIDA)
   const renderPreview = () => {
     if (!content) return null;
 
@@ -134,7 +254,7 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
         return;
       }
 
-      // Detectar URLs de imágenes y videos de YouTube
+      // Detectar URLs de imágenes y videos
       const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?|(https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+))/gi;
       
       // Si la línea es solo una URL
@@ -180,21 +300,22 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
 
       // Procesar líneas que mezclan texto y URLs
       const partes = line.split(urlRegex);
-      const fragmentosTexto: JSX.Element[] = [];
       const elementosLinea: JSX.Element[] = [];
+      let textoAcumulado = '';
 
       partes.forEach((parte, idx) => {
         if (!parte || typeof parte !== 'string') return;
         
         if (parte.match(urlRegex)) {
-          // Es una URL - primero sacamos el texto acumulado
-          if (fragmentosTexto.length > 0) {
+          // Es una URL - si hay texto acumulado, lo procesamos primero
+          if (textoAcumulado) {
+            const htmlProcesado = markdownToHtml(textoAcumulado);
             elementosLinea.push(
               <p key={`p-${lineIndex}-${idx}`} className="mb-4 text-[#c4aa7d]">
-                {fragmentosTexto}
+                <span dangerouslySetInnerHTML={{ __html: htmlProcesado }} />
               </p>
             );
-            fragmentosTexto.length = 0;
+            textoAcumulado = '';
           }
 
           const videoId = getYoutubeVideoId(parte);
@@ -232,33 +353,18 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
               </div>
             );
           }
-        } else if (parte.trim()) {
-          // Es texto - procesar negritas
-          const boldRegex = /\*\*(.*?)\*\*/g;
-          const textParts = parte.split(boldRegex);
-          
-          if (textParts.length === 1) {
-            fragmentosTexto.push(<span key={`text-${lineIndex}-${idx}`}>{parte}</span>);
-          } else {
-            fragmentosTexto.push(
-              <span key={`bold-${lineIndex}-${idx}`}>
-                {textParts.map((text, i) => {
-                  if (i % 2 === 1) {
-                    return <strong key={`strong-${i}`} className="text-[#f0d9b5] font-bold">{text}</strong>;
-                  }
-                  return <span key={`normal-${i}`}>{text}</span>;
-                })}
-              </span>
-            );
-          }
+        } else {
+          // Es texto - acumular
+          textoAcumulado += parte;
         }
       });
 
       // Si quedó texto acumulado al final
-      if (fragmentosTexto.length > 0) {
+      if (textoAcumulado) {
+        const htmlProcesado = markdownToHtml(textoAcumulado);
         elementosLinea.push(
           <p key={`p-final-${lineIndex}`} className="mb-4 text-[#c4aa7d]">
-            {fragmentosTexto}
+            <span dangerouslySetInnerHTML={{ __html: htmlProcesado }} />
           </p>
         );
       }
@@ -271,7 +377,7 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
 
   return (
     <div className="space-y-4">
-      {/* Barra de herramientas */}
+      {/* Barra de herramientas mejorada */}
       <div className="flex flex-wrap gap-2 mb-4 p-2 bg-[#1a1f23]/80 border border-[#8b6f4c] rounded">
         <button
           onClick={() => insertFormat('h1')}
@@ -303,6 +409,27 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
           <strong>B</strong>
         </button>
         <button
+          onClick={() => insertFormat('link')}
+          className="bg-[#2a2f33] border border-[#8b6f4c] px-3 py-1 text-xs text-[#c4aa7d] hover:border-[#f0d9b5] hover:text-[#f0d9b5] transition-colors"
+          title="Insertar enlace"
+        >
+          🔗
+        </button>
+        <button
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="bg-[#2a2f33] border border-[#8b6f4c] px-3 py-1 text-xs text-[#c4aa7d] hover:border-[#f0d9b5] hover:text-[#f0d9b5] transition-colors"
+          title="Insertar emoji"
+        >
+          😊
+        </button>
+        <button
+          onClick={() => insertFormat('color')}
+          className="bg-[#2a2f33] border border-[#8b6f4c] px-3 py-1 text-xs text-[#c4aa7d] hover:border-[#f0d9b5] hover:text-[#f0d9b5] transition-colors"
+          title="Color de texto"
+        >
+          🎨
+        </button>
+        <button
           onClick={() => setShowImageModal(true)}
           className="bg-[#2a2f33] border border-[#8b6f4c] px-3 py-1 text-xs text-[#c4aa7d] hover:border-[#f0d9b5] hover:text-[#f0d9b5] transition-colors"
           title="Insertar imagen"
@@ -310,9 +437,27 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
           🖼️
         </button>
         <span className="text-[#8b6f4c] text-xs ml-auto hidden sm:block">
-          Usa # para títulos, ## para subtítulos, **texto** para negrita
+          Usa # para títulos, **negrita**, [texto](url) para enlaces
         </span>
       </div>
+
+      {/* Selector de emojis */}
+      {showEmojiPicker && (
+        <div className="mb-4 p-4 bg-[#1a1f23] border-2 border-[#8b6f4c] rounded max-h-48 overflow-y-auto">
+          <div className="flex flex-wrap gap-2">
+            {emojis.map((emoji, idx) => (
+              <button
+                key={idx}
+                onClick={() => insertEmoji(emoji.emoji)}
+                className="text-2xl hover:bg-[#2a2f33] p-2 rounded transition-colors"
+                title={emoji.name}
+              >
+                {emoji.emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Área de edición */}
       <textarea
@@ -328,11 +473,12 @@ export default function EditorNoticia({ initialContent = '', onChange, placehold
 ## Subtítulo
 ### Título más pequeño
 **texto en negrita**
+[texto del enlace](https://ejemplo.com)
+<color=#ef4444>texto coloreado</color>
 
 Ejemplos de imágenes y videos:
 https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg
-https://www.youtube.com/watch?v=dQw4w9WgXcQ
-https://youtu.be/dQw4w9WgXcQ`}
+https://www.youtube.com/watch?v=dQw4w9WgXcQ`}
         className="w-full bg-[#0a0c0e] border-2 border-[#8b6f4c] p-4 text-[#f0d9b5] min-h-[300px] font-mono text-sm focus:border-[#f0d9b5] outline-none"
       />
 
@@ -421,7 +567,106 @@ https://youtu.be/dQw4w9WgXcQ`}
         </div>
       )}
 
-      {/* Vista previa mejorada - CON SOPORTE PARA YOUTUBE */}
+      {/* Modal para insertar enlace */}
+      {showLinkModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1f23] border-4 border-[#8b6f4c] p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-[#f0d9b5] mb-4">
+              Insertar enlace
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[#c4aa7d] text-sm mb-2">Texto del enlace</label>
+                <input
+                  type="text"
+                  value={linkText}
+                  onChange={(e) => setLinkText(e.target.value)}
+                  placeholder="Ej: Haz clic aquí"
+                  className="w-full bg-[#0a0c0e] border-2 border-[#8b6f4c] p-3 text-[#f0d9b5]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[#c4aa7d] text-sm mb-2">URL</label>
+                <input
+                  type="text"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://ejemplo.com"
+                  className="w-full bg-[#0a0c0e] border-2 border-[#8b6f4c] p-3 text-[#f0d9b5]"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button
+                  onClick={insertLink}
+                  disabled={!linkUrl || !linkText}
+                  className="flex-1 bg-[#8b6f4c] py-3 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors disabled:opacity-50"
+                >
+                  INSERTAR
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLinkModal(false);
+                    setLinkUrl('');
+                    setLinkText('');
+                  }}
+                  className="flex-1 border-2 border-[#8b6f4c] py-3 text-[#c4aa7d] hover:bg-[#2a2f33] transition-colors"
+                >
+                  CANCELAR
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para seleccionar color */}
+      {showColorModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1f23] border-4 border-[#8b6f4c] p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-[#f0d9b5] mb-4">
+              Seleccionar color
+            </h3>
+            
+            <div className="grid grid-cols-4 gap-2 mb-6">
+              {colorPalette.map((color, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedColor(color.value)}
+                  className={`p-3 rounded border-2 transition-all ${
+                    selectedColor === color.value 
+                      ? 'border-[#f0d9b5] scale-105' 
+                      : 'border-[#8b6f4c]'
+                  }`}
+                  style={{ backgroundColor: color.value }}
+                  title={color.name}
+                >
+                  <span className="sr-only">{color.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={insertColor}
+                className="flex-1 bg-[#8b6f4c] py-3 text-[#0a0c0e] font-bold hover:bg-[#c4aa7d] transition-colors"
+              >
+                APLICAR COLOR
+              </button>
+              <button
+                onClick={() => setShowColorModal(false)}
+                className="flex-1 border-2 border-[#8b6f4c] py-3 text-[#c4aa7d] hover:bg-[#2a2f33] transition-colors"
+              >
+                CANCELAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vista previa mejorada */}
       {content && (
         <div className="mt-8 p-6 bg-[#1a1f23]/80 border-2 border-[#8b6f4c] rounded">
           <h4 className="text-[#f0d9b5] text-sm mb-4 border-b border-[#8b6f4c] pb-2 font-bold uppercase tracking-wider">

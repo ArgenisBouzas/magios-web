@@ -62,6 +62,35 @@ export default function TarjetaNoticia({ noticia }: Props) {
       .filter((item): item is {id: string, url: string} => item !== null);
   };
 
+  // Función para limpiar el contenido de markdown para el resumen
+  const limpiarMarkdownParaResumen = (texto: string): string => {
+    if (!texto) return '';
+    
+    let limpio = texto;
+    
+    // Eliminar tags de color: <color=#hex>texto</color> -> texto
+    limpio = limpio.replace(/<color=#[^>]+>(.*?)<\/color>/g, '$1');
+    
+    // Eliminar enlaces: [texto](url) -> texto
+    limpio = limpio.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    
+    // Eliminar negritas: **texto** -> texto
+    limpio = limpio.replace(/\*\*(.*?)\*\*/g, '$1');
+    
+    // Eliminar títulos: # texto, ## texto, ### texto -> texto
+    limpio = limpio.replace(/#{1,3}\s/g, '');
+    
+    // Eliminar URLs de imágenes y videos
+    const urlRegex = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?/gi;
+    const youtubeRegex = /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+/gi;
+    limpio = limpio.replace(urlRegex, '').replace(youtubeRegex, '');
+    
+    // Normalizar espacios
+    limpio = limpio.replace(/\s+/g, ' ').trim();
+    
+    return limpio;
+  };
+
   useEffect(() => {
     // Extraer imágenes del contenido
     const imagenesExtraidas = extraerImagenes(noticia.contenido);
@@ -85,15 +114,7 @@ export default function TarjetaNoticia({ noticia }: Props) {
   const tieneVideos = videosInfo.length > 0;
 
   const extractResumen = (contenido: string) => {
-    if (!contenido) return '';
-    
-    // Eliminar URLs de imágenes y videos para el resumen
-    const urlRegex = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?/gi;
-    const youtubeRegex = /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+/gi;
-    const sinUrls = contenido.replace(urlRegex, '').replace(youtubeRegex, '');
-    const sinMarkdown = sinUrls.replace(/\*\*/g, '');
-    const sinTitulos = sinMarkdown.replace(/#{1,3}\s/g, '');
-    const textoLimpio = sinTitulos.replace(/\s+/g, ' ').trim();
+    const textoLimpio = limpiarMarkdownParaResumen(contenido);
     return textoLimpio.substring(0, 100) + (textoLimpio.length > 100 ? '...' : '');
   };
 
@@ -247,9 +268,11 @@ export default function TarjetaNoticia({ noticia }: Props) {
             <span className="text-[#8b6f4c]">
               Por: {noticia.autor_nombre}
               <span className={`ml-1 ${
-                noticia.autor_rango === 'General' ? 'text-purple-400' :
-                noticia.autor_rango === 'Oficial' ? 'text-blue-400' :
-                'text-green-400'
+                noticia.autor_rango === 'Guild Master' ? 'text-purple-400' :
+                noticia.autor_rango === 'Officer' ? 'text-blue-400' :
+                noticia.autor_rango === 'Alter' ? 'text-yellow-400' :
+                noticia.autor_rango === 'Member' ? 'text-green-400' :
+                'text-gray-400'
               }`}>
                 ({noticia.autor_rango})
               </span>

@@ -83,130 +83,80 @@ export default function NoticiaDetallePage({ params }: { params: Promise<{ id: s
   const getYoutubeVideoId = (url: string): string | null => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  };
-
-  // Función para renderizar el contenido con soporte para títulos, negritas, imágenes y videos
-// app/noticias/[id]/page.tsx
-// Reemplaza SOLO la función renderizarContenido con esta versión
-
-const renderizarContenido = (texto: string) => {
-  if (!texto) return null;
-
-  // Función para detectar videos de YouTube
-  const getYoutubeVideoId = (url: string): string | null => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
     return (match && match[2]?.length === 11) ? match[2] : null;
   };
 
-  const lineas = texto.split('\n');
-  const elementos: JSX.Element[] = [];
+  // Función para convertir markdown a HTML
+  const markdownToHtml = (texto: string): string => {
+    if (!texto) return texto;
 
-  lineas.forEach((linea, indexLinea) => {
-    if (!linea?.trim()) {
-      elementos.push(<br key={`br-${indexLinea}`} />);
-      return;
-    }
+    let html = texto;
 
-    // Detectar títulos
-    if (linea.startsWith('# ')) {
-      elementos.push(
-        <h1 key={`h1-${indexLinea}`} className="text-2xl md:text-4xl font-bold text-[#f0d9b5] mt-6 md:mt-8 mb-3 md:mb-4">
-          {linea.substring(2)}
-        </h1>
-      );
-      return;
-    }
-    if (linea.startsWith('## ')) {
-      elementos.push(
-        <h2 key={`h2-${indexLinea}`} className="text-xl md:text-3xl font-bold text-[#f0d9b5] mt-5 md:mt-6 mb-2 md:mb-3">
-          {linea.substring(3)}
-        </h2>
-      );
-      return;
-    }
-    if (linea.startsWith('### ')) {
-      elementos.push(
-        <h3 key={`h3-${indexLinea}`} className="text-lg md:text-2xl font-bold text-[#f0d9b5] mt-4 md:mt-5 mb-2">
-          {linea.substring(4)}
-        </h3>
-      );
-      return;
-    }
+    // 1. Procesar colores: <color=#hex>texto</color>
+    html = html.replace(/<color=([^>]+)>(.*?)<\/color>/g, (match, color, content) => {
+      return `<span style="color: ${color};">${content}</span>`;
+    });
 
-    // Detectar URLs de imágenes y videos de YouTube
-    const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?|(https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+))/gi;
-    
-    // Si la línea es solo una URL
-    if (linea.match(urlRegex) && !linea.replace(urlRegex, '').trim()) {
-      const videoId = getYoutubeVideoId(linea);
-      
-      if (videoId) {
-        // Es un video de YouTube
-        elementos.push(
-          <div key={`video-${indexLinea}`} className="my-6 md:my-8">
-            <div className="relative w-full aspect-video bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
-              <iframe
-                width="100%"
-                height="100%"
-                src={`https://www.youtube.com/embed/${videoId}`}
-                title="Video de YouTube"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 w-full h-full"
-              />
-            </div>
-          </div>
-        );
-      } else {
-        // Es una imagen
-        elementos.push(
-          <div key={`img-${indexLinea}`} className="my-6 md:my-8">
-            <div className="relative w-full h-48 md:h-96 bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
-              <Image
-                src={linea}
-                alt="Imagen en noticia"
-                fill
-                className="object-contain"
-                unoptimized
-                priority={indexLinea < 2}
-                sizes="(max-width: 768px) 100vw, 800px"
-              />
-            </div>
-          </div>
-        );
+    // 2. Procesar negritas (**texto**)
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#f0d9b5] font-bold">$1</strong>');
+
+    // 3. Procesar enlaces: [texto](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[#f0d9b5] hover:underline font-bold">$1</a>');
+
+    return html;
+  };
+
+  // Función para renderizar el contenido con soporte para títulos, negritas, imágenes, videos y markdown
+  const renderizarContenido = (texto: string) => {
+    if (!texto) return null;
+
+    const lineas = texto.split('\n');
+    const elementos: JSX.Element[] = [];
+
+    lineas.forEach((linea, indexLinea) => {
+      if (!linea?.trim()) {
+        elementos.push(<br key={`br-${indexLinea}`} />);
+        return;
       }
-      return;
-    }
 
-    // Procesar líneas que contienen texto con URLs mezcladas
-    const partes = linea.split(urlRegex);
-    const fragmentosTexto: JSX.Element[] = [];
-    const elementosLinea: JSX.Element[] = [];
+      // Detectar títulos
+      if (linea.startsWith('# ')) {
+        elementos.push(
+          <h1 key={`h1-${indexLinea}`} className="text-2xl md:text-4xl font-bold text-[#f0d9b5] mt-6 md:mt-8 mb-3 md:mb-4">
+            {linea.substring(2)}
+          </h1>
+        );
+        return;
+      }
+      if (linea.startsWith('## ')) {
+        elementos.push(
+          <h2 key={`h2-${indexLinea}`} className="text-xl md:text-3xl font-bold text-[#f0d9b5] mt-5 md:mt-6 mb-2 md:mb-3">
+            {linea.substring(3)}
+          </h2>
+        );
+        return;
+      }
+      if (linea.startsWith('### ')) {
+        elementos.push(
+          <h3 key={`h3-${indexLinea}`} className="text-lg md:text-2xl font-bold text-[#f0d9b5] mt-4 md:mt-5 mb-2">
+            {linea.substring(4)}
+          </h3>
+        );
+        return;
+      }
 
-    partes.forEach((parte, indexParte) => {
-      // ✅ IMPORTANTE: Verificar que parte existe y es string
-      if (!parte || typeof parte !== 'string') return;
+      // Detectar URLs de imágenes y videos de YouTube
+      const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?[^\s]*)?|(https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/[^\s]+))/gi;
       
-      if (parte.match(urlRegex)) {
-        // Es una URL - primero sacamos el texto acumulado
-        if (fragmentosTexto.length > 0) {
-          elementosLinea.push(
-            <p key={`p-texto-${indexLinea}-${indexParte}`} className="mb-3 md:mb-4 text-sm md:text-base text-[#c4aa7d]">
-              {fragmentosTexto}
-            </p>
-          );
-          fragmentosTexto.length = 0;
-        }
-
-        const videoId = getYoutubeVideoId(parte);
+      // Si la línea es solo una URL
+      if (linea.match(urlRegex) && !linea.replace(urlRegex, '').trim()) {
+        const videoId = getYoutubeVideoId(linea);
+        
         if (videoId) {
           // Es un video de YouTube
-          elementosLinea.push(
-            <div key={`video-inline-${indexLinea}-${indexParte}`} className="my-3 md:my-4">
-              <div className="relative w-full aspect-video bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
+          elementos.push(
+            <div key={`video-${indexLinea}`} className="my-6 md:my-8">
+              <div className="relative w-full aspect-video bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
                 <iframe
                   width="100%"
                   height="100%"
@@ -222,57 +172,102 @@ const renderizarContenido = (texto: string) => {
           );
         } else {
           // Es una imagen
-          elementosLinea.push(
-            <div key={`img-inline-${indexLinea}-${indexParte}`} className="my-3 md:my-4">
-              <div className="relative w-full h-40 md:h-64 bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
+          elementos.push(
+            <div key={`img-${indexLinea}`} className="my-6 md:my-8">
+              <div className="relative w-full h-48 md:h-96 bg-[#0a0c0e] border-2 border-[#8b6f4c] rounded-lg overflow-hidden">
                 <Image
-                  src={parte}
+                  src={linea}
                   alt="Imagen en noticia"
                   fill
                   className="object-contain"
                   unoptimized
-                  sizes="(max-width: 768px) 100vw, 600px"
+                  priority={indexLinea < 2}
+                  sizes="(max-width: 768px) 100vw, 800px"
                 />
               </div>
             </div>
           );
         }
-      } else if (parte.trim()) {
-        // Es texto - procesar negritas
-        const boldRegex = /\*\*(.*?)\*\*/g;
-        const textParts = parte.split(boldRegex);
-        
-        if (textParts.length === 1) {
-          fragmentosTexto.push(<span key={`text-${indexLinea}-${indexParte}`}>{parte}</span>);
-        } else {
-          fragmentosTexto.push(
-            <span key={`bold-${indexLinea}-${indexParte}`}>
-              {textParts.map((text, i) => {
-                if (i % 2 === 1) {
-                  return <strong key={`strong-${i}`} className="text-[#f0d9b5] font-bold">{text}</strong>;
-                }
-                return <span key={`normal-${i}`}>{text}</span>;
-              })}
-            </span>
-          );
-        }
+        return;
       }
+
+      // Procesar líneas que contienen texto con URLs mezcladas
+      const partes = linea.split(urlRegex);
+      const elementosLinea: JSX.Element[] = [];
+      let textoAcumulado = '';
+
+      partes.forEach((parte, indexParte) => {
+        if (!parte || typeof parte !== 'string') return;
+        
+        if (parte.match(urlRegex)) {
+          // Es una URL - primero procesamos el texto acumulado
+          if (textoAcumulado) {
+            const htmlProcesado = markdownToHtml(textoAcumulado);
+            elementosLinea.push(
+              <p key={`p-texto-${indexLinea}-${indexParte}`} className="mb-3 md:mb-4 text-sm md:text-base text-[#c4aa7d]">
+                <span dangerouslySetInnerHTML={{ __html: htmlProcesado }} />
+              </p>
+            );
+            textoAcumulado = '';
+          }
+
+          const videoId = getYoutubeVideoId(parte);
+          if (videoId) {
+            // Es un video de YouTube
+            elementosLinea.push(
+              <div key={`video-inline-${indexLinea}-${indexParte}`} className="my-3 md:my-4">
+                <div className="relative w-full aspect-video bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="Video de YouTube"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 w-full h-full"
+                  />
+                </div>
+              </div>
+            );
+          } else {
+            // Es una imagen
+            elementosLinea.push(
+              <div key={`img-inline-${indexLinea}-${indexParte}`} className="my-3 md:my-4">
+                <div className="relative w-full h-40 md:h-64 bg-[#0a0c0e] border border-[#8b6f4c] rounded overflow-hidden">
+                  <Image
+                    src={parte}
+                    alt="Imagen en noticia"
+                    fill
+                    className="object-contain"
+                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 600px"
+                  />
+                </div>
+              </div>
+            );
+          }
+        } else {
+          // Es texto - acumular
+          textoAcumulado += parte;
+        }
+      });
+
+      // Si quedó texto acumulado al final
+      if (textoAcumulado) {
+        const htmlProcesado = markdownToHtml(textoAcumulado);
+        elementosLinea.push(
+          <p key={`p-final-${indexLinea}`} className="mb-3 md:mb-4 text-sm md:text-base text-[#c4aa7d]">
+            <span dangerouslySetInnerHTML={{ __html: htmlProcesado }} />
+          </p>
+        );
+      }
+
+      elementos.push(...elementosLinea);
     });
 
-    // Si quedó texto al final
-    if (fragmentosTexto.length > 0) {
-      elementosLinea.push(
-        <p key={`p-final-${indexLinea}`} className="mb-3 md:mb-4 text-sm md:text-base text-[#c4aa7d]">
-          {fragmentosTexto}
-        </p>
-      );
-    }
-
-    elementos.push(...elementosLinea);
-  });
-
-  return elementos;
-};
+    return elementos;
+  };
 
   if (loading) {
     return (
@@ -316,8 +311,20 @@ const renderizarContenido = (texto: string) => {
     );
   }
 
-  const puedeModerar = usuario && (usuario.rango === 'General' || usuario.rango === 'Oficial');
+  const puedeModerar = usuario && (usuario.rango === 'Guild Master' || usuario.rango === 'Officer');
   const esAutor = usuario && usuario.id === noticia.autor_id;
+
+  // Función para obtener el color del texto según el rango
+  const getRangoTextColor = (rango: string) => {
+    const colores: Record<string, string> = {
+      'Guild Master': 'text-purple-400',
+      'Officer': 'text-blue-400',
+      'Alter': 'text-yellow-400',
+      'Member': 'text-green-400',
+      'Initiate': 'text-gray-400'
+    };
+    return colores[rango] || 'text-gray-400';
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -375,11 +382,7 @@ const renderizarContenido = (texto: string) => {
                 <span className="text-[#8b6f4c]">
                   <span className="hidden sm:inline">Por: </span>
                   <span className="text-[#f0d9b5] font-bold">{noticia.autor_nombre}</span>
-                  <span className={`ml-1 text-[10px] sm:text-xs ${
-                    noticia.autor_rango === 'General' ? 'text-purple-400' :
-                    noticia.autor_rango === 'Oficial' ? 'text-blue-400' :
-                    'text-green-400'
-                  }`}>
+                  <span className={`ml-1 text-[10px] sm:text-xs ${getRangoTextColor(noticia.autor_rango)}`}>
                     ({noticia.autor_rango})
                   </span>
                 </span>
@@ -392,7 +395,7 @@ const renderizarContenido = (texto: string) => {
               </div>
             </div>
 
-            {/* Contenido - CON SOPORTE PARA VIDEOS DE YOUTUBE */}
+            {/* Contenido - CON SOPORTE PARA MARKDOWN */}
             <div className="prose prose-invert max-w-none text-[#c4aa7d] leading-relaxed">
               {renderizarContenido(noticia.contenido)}
             </div>
