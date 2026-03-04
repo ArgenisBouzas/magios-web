@@ -63,7 +63,7 @@ export default function BarraNavegacion() {
     { nombre: 'Inicio', ruta: '/' },
     { nombre: 'Miembros', ruta: '/miembros' },
     { nombre: 'Progreso', ruta: '/progreso' },
-    { nombre: 'Noticias', ruta: '/noticias' },
+    { nombre: 'Foro', ruta: '/noticias' },
   ];
 
   // Si el usuario está logueado, mostrar solo navItems + área de usuario
